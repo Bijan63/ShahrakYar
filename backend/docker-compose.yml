@@ -1,0 +1,55 @@
+services:
+
+  postgres:
+
+    image: postgres:16
+
+    container_name: shahrakyar-db
+
+    restart: always
+
+    environment:
+
+      POSTGRES_USER: postgres
+
+      POSTGRES_PASSWORD: "${POSTGRES_PASSWORD:?Set POSTGRES_PASSWORD in .env}"
+
+      POSTGRES_DB: shahrakyar
+
+    ports:
+
+      - "5432:5432"
+
+    volumes:
+
+      - postgres_data:/var/lib/postgresql/data
+
+  backend:
+
+    build: .
+
+    container_name: shahrakyar-api
+
+    restart: always
+
+    depends_on:
+
+      - postgres
+
+    ports:
+
+      - "5000:5000"
+
+    env_file:
+
+      - .env.docker
+
+    volumes:
+
+      - .:/app
+
+      - /app/node_modules
+
+volumes:
+
+  postgres_data:

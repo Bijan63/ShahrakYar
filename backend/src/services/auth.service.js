@@ -1,5 +1,8 @@
 const bcrypt = require("bcrypt");
 const jwt = require("jsonwebtoken");
+
+const config = require("../config");
+
 const AppError = require("../utils/AppError");
 const userRepository = require("../repositories/user.repository");
 
@@ -35,7 +38,10 @@ class AuthService {
         }
 
         const hashedPassword =
-            await bcrypt.hash(password, 10);
+            await bcrypt.hash(
+                password,
+                config.bcrypt.saltRounds
+            );
 
         const user =
             await userRepository.create({
@@ -95,26 +101,20 @@ class AuthService {
 
         }
 
-        const token =
-            jwt.sign(
+        const token = jwt.sign(
 
-                {
+            {
+                id: user.id,
+                role: user.role
+            },
 
-                    id: user.id,
+            config.jwt.secret,
 
-                    role: user.role
+            {
+                expiresIn: config.jwt.expiresIn
+            }
 
-                },
-
-                process.env.JWT_SECRET,
-
-                {
-
-                    expiresIn: "7d"
-
-                }
-
-            );
+        );
 
         return {
 
