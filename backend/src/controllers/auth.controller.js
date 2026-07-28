@@ -1,67 +1,59 @@
-const bcrypt = require("bcrypt");
-const prisma = require("../config/prisma");
+const authService = require("../services/auth.service");
 
-const register = async (req, res) => {
+const register = async (req, res, next) => {
+
     try {
 
-        const { fullName, email, password } = req.body;
-
-        // بررسی اطلاعات
-        if (!fullName || !email || !password) {
-            return res.status(400).json({
-                success: false,
-                message: "All fields are required."
-            });
-        }
-
-        // بررسی وجود ایمیل
-        const existingUser = await prisma.user.findUnique({
-            where: {
-                email
-            }
-        });
-
-        if (existingUser) {
-            return res.status(409).json({
-                success: false,
-                message: "Email already exists."
-            });
-        }
-
-        // رمزنگاری رمز عبور
-        const hashedPassword = await bcrypt.hash(password, 10);
-
-        // ذخیره در دیتابیس
-        const user = await prisma.user.create({
-            data: {
-                fullName,
-                email,
-                password: hashedPassword
-            }
-        });
+        const user = await authService.register(
+            req.body
+        );
 
         return res.status(201).json({
+
             success: true,
-            message: "User registered successfully 🚀",
-            user: {
-                id: user.id,
-                fullName: user.fullName,
-                email: user.email
-            }
+
+            user
+
         });
 
-    } catch (error) {
+    } catch (err) {
 
-        console.error(error);
-
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error"
-        });
+        next(err);
 
     }
+
+};
+
+const login = async (req, res, next) => {
+
+    try {
+
+        const result = await authService.login(
+            req.body
+        );
+
+        return res.status(200).json({
+
+            success: true,
+
+            token: result.token,
+
+            user: result.user
+
+        });
+
+    } catch (err) {
+
+        next(err);
+
+    }
+
 };
 
 module.exports = {
-    register
+
+    register,
+
+    login
+
 };
