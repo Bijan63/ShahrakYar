@@ -7,102 +7,55 @@ const AppError = require("../utils/AppError");
 const userRepository = require("../repositories/user.repository");
 
 class AuthService {
-
     async register(data) {
-
-        const {
-            fullName,
-            email,
-            password
-        } = data;
+        const { fullName, email, password } = data;
 
         if (!fullName || !email || !password) {
-
-            throw new AppError(
-                "All fields are required.",
-                400
-            );
-
+            throw new AppError("All fields are required.", 400);
         }
 
-        const existingUser =
-            await userRepository.findByEmail(email);
+        const existingUser = await userRepository.findByEmail(email);
 
         if (existingUser) {
-
-            throw new AppError(
-                "Email already exists.",
-                409
-            );
-
+            throw new AppError("Email already exists.", 409);
         }
 
-        const hashedPassword =
-            await bcrypt.hash(
-                password,
-                config.bcrypt.saltRounds
-            );
+        const hashedPassword = await bcrypt.hash(
+            password,
+            config.bcrypt.saltRounds
+        );
 
-        const user =
-            await userRepository.create({
+        const user = await userRepository.create({
+            fullName,
 
-                fullName,
+            email,
 
-                email,
-
-                password: hashedPassword
-
-            });
+            password: hashedPassword
+        });
 
         return user;
-
     }
 
     async login(data) {
-
-        const {
-            email,
-            password
-        } = data;
+        const { email, password } = data;
 
         if (!email || !password) {
-
-            throw new AppError(
-                "Email and password are required.",
-                400
-            );
-
+            throw new AppError("Email and password are required.", 400);
         }
 
-        const user =
-            await userRepository.findByEmail(email);
+        const user = await userRepository.findByEmail(email);
 
         if (!user) {
-
-            throw new AppError(
-                "Invalid email or password.",
-                401
-            );
-
+            throw new AppError("Invalid email or password.", 401);
         }
 
-        const validPassword =
-            await bcrypt.compare(
-                password,
-                user.password
-            );
+        const validPassword = await bcrypt.compare(password, user.password);
 
         if (!validPassword) {
-
-            throw new AppError(
-                "Invalid email or password.",
-                401
-            );
-
+            throw new AppError("Invalid email or password.", 401);
         }
 
         const token = jwt.sign(
-
             {
                 id: user.id,
                 role: user.role
@@ -113,15 +66,12 @@ class AuthService {
             {
                 expiresIn: config.jwt.expiresIn
             }
-
         );
 
         return {
-
             token,
 
             user: {
-
                 id: user.id,
 
                 fullName: user.fullName,
@@ -129,13 +79,9 @@ class AuthService {
                 email: user.email,
 
                 role: user.role
-
             }
-
         };
-
     }
-
 }
 
 module.exports = new AuthService();

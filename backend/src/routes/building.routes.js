@@ -1,126 +1,49 @@
+
 const express = require("express");
 
 const router = express.Router();
 
-const {
-    createBuilding,
-    getBuildings,
-    getBuildingById
-} = require("../controllers/building.controller");
+const buildingController = require("../controllers/building.controller");
 
-const verifyToken = require("../middleware/auth.middleware");
+const authMiddleware = require("../middleware/auth.middleware");
+const authorize = require("../middleware/role.middleware");
 
-/**
- * @swagger
- * tags:
- *   - name: Buildings
- *     description: Building Management APIs
- */
+// Create Building
+router.post(
+    "/",
+    authMiddleware,
+    authorize("ADMIN"),
+    buildingController.createBuilding
+);
 
-/**
- * @swagger
- * components:
- *   schemas:
- *     Building:
- *       type: object
- *       properties:
- *         id:
- *           type: integer
- *           example: 1
- *         name:
- *           type: string
- *           example: Building A
- *         address:
- *           type: string
- *           example: Tehran, Sample Street
- *         floors:
- *           type: integer
- *           example: 5
- *         createdAt:
- *           type: string
- *           format: date-time
- *
- *     CreateBuilding:
- *       type: object
- *       required:
- *         - name
- *         - address
- *         - floors
- *       properties:
- *         name:
- *           type: string
- *           example: Building A
- *         address:
- *           type: string
- *           example: Tehran, Sample Street
- *         floors:
- *           type: integer
- *           example: 5
- */
+// Get All Buildings
+router.get(
+    "/",
+    authMiddleware,
+    buildingController.getBuildings
+);
 
-/**
- * @swagger
- * /api/buildings:
- *   post:
- *     summary: Create a new building
- *     tags: [Buildings]
- *     security:
- *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             $ref: '#/components/schemas/CreateBuilding'
- *     responses:
- *       201:
- *         description: Building created successfully
- *       400:
- *         description: Invalid request
- *       401:
- *         description: Unauthorized
- */
-router.post("/", verifyToken, createBuilding);
+// Get Building By Id
+router.get(
+    "/:id",
+    authMiddleware,
+    buildingController.getBuilding
+);
 
-/**
- * @swagger
- * /api/buildings:
- *   get:
- *     summary: Get all buildings
- *     tags: [Buildings]
- *     security:
- *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: List of buildings
- *       401:
- *         description: Unauthorized
- */
-router.get("/", verifyToken, getBuildings);
+// Update Building
+router.put(
+    "/:id",
+    authMiddleware,
+    authorize("ADMIN"),
+    buildingController.updateBuilding
+);
 
-/**
- * @swagger
- * /api/buildings/{id}:
- *   get:
- *     summary: Get building by ID
- *     tags: [Buildings]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *         example: 1
- *     responses:
- *       200:
- *         description: Building details
- *       404:
- *         description: Building not found
- *       401:
- *         description: Unauthorized
- */
-router.get("/:id", verifyToken, getBuildingById);
+// Delete Building
+router.delete(
+    "/:id",
+    authMiddleware,
+    authorize("ADMIN"),
+    buildingController.deleteBuilding
+);
 
 module.exports = router;

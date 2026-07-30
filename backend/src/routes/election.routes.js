@@ -24,11 +24,7 @@ router.post(
 // Any logged-in user
 // ==============================
 
-router.get(
-    "/",
-    authMiddleware,
-    electionController.getElections
-);
+router.get("/", authMiddleware, electionController.getElections);
 
 // ==============================
 // Get Election Results

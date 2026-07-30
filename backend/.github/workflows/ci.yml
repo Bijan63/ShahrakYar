@@ -1,77 +1,72 @@
 name: ShahrakYar CI
 
 on:
-  push:
-    branches:
-      - develop
-      - main
+    push:
+        branches:
+            - develop
+            - main
 
-  pull_request:
-    branches:
-      - develop
-      - main
+    pull_request:
+        branches:
+            - develop
+            - main
 
 jobs:
-  backend:
+    backend:
+        runs-on: ubuntu-latest
 
-    runs-on: ubuntu-latest
+        services:
+            postgres:
+                image: postgres:16
 
-    services:
+                env:
+                    POSTGRES_USER: postgres
+                    POSTGRES_PASSWORD: ci_only_password_for_github_actions
+                    POSTGRES_DB: shahrakyar
 
-      postgres:
+                ports:
+                    - 5432:5432
 
-        image: postgres:16
+                options: >-
+                    --health-cmd="pg_isready -U postgres"
+                    --health-interval=10s
+                    --health-timeout=5s
+                    --health-retries=5
 
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: ci_only_password_for_github_actions
-          POSTGRES_DB: shahrakyar
+            DATABASE_URL: postgresql://postgres:ci_only_password_for_github_actions@localhost:5432/shahrakyar
 
-        ports:
-          - 5432:5432
+            JWT_SECRET: test-secret
 
-        options: >-
-          --health-cmd="pg_isready -U postgres"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+            JWT_EXPIRE: 7d
 
-    env:
+            NODE_ENV: test
 
-      DATABASE_URL: postgresql://postgres:ci_only_password_for_github_actions@localhost:5432/shahrakyar
+            PORT: 5000
 
-      JWT_SECRET: test-secret
+            BCRYPT_SALT_ROUNDS: 10
 
-      JWT_EXPIRE: 7d
+        steps:
+            - name: Checkout Repository
+              uses: actions/checkout@v4
 
-      NODE_ENV: test
+            - name: Setup Node.js
+              uses: actions/setup-node@v4
+              with:
+                  node-version: 22
+                  cache: npm
 
-      PORT: 5000
+            - name: Install Dependencies
+              run: npm ci
 
-      BCRYPT_SALT_ROUNDS: 10
+            - name: Generate Prisma Client
+              run: npx prisma generate
 
-    steps:
+            - name: Run Prisma Migrations
+              run: npx prisma migrate deploy
 
-      - name: Checkout Repository
-        uses: actions/checkout@v4
+            - name: Build Docker Image
+              run: docker build -t shahrakyar-api .
 
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: 22
-          cache: npm
-
-      - name: Install Dependencies
-        run: npm ci
-
-      - name: Generate Prisma Client
-        run: npx prisma generate
-
-      - name: Run Prisma Migrations
-        run: npx prisma migrate deploy
-
-      - name: Build Docker Image
-        run: docker build -t shahrakyar-api .
-
-      - name: Verify Build
-        run: echo "✅ CI Build Passed"
+            - name: Verify Build
+              run: echo "✅ CI Build Passed"

@@ -18,23 +18,15 @@ const errorHandler = require("./middleware/error.middleware");
 
 const app = express();
 
-// ========================================
-// Middlewares
-// ========================================
+app.disable("x-powered-by");
 
 app.use(express.json());
-
 
 // ========================================
 // Swagger Documentation
 // ========================================
 
-app.use(
-    "/api-docs",
-    swaggerUi.serve,
-    swaggerUi.setup(swaggerSpec)
-);
-
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // ========================================
 // API Routes
@@ -56,15 +48,12 @@ app.use("/api/candidates", candidateRoutes);
 
 app.use("/api/votes", voteRoutes);
 
-
 // ========================================
 // Home Route
 // ========================================
 
 app.get("/", (req, res) => {
-
     res.json({
-
         success: true,
 
         name: "ShahrakYar API",
@@ -72,11 +61,8 @@ app.get("/", (req, res) => {
         version: "1.0.0",
 
         status: "Running 🚀"
-
     });
-
 });
-
 
 // ========================================
 // Error Handler
