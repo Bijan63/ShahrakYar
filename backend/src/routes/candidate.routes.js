@@ -16,18 +16,10 @@ router.post(
 );
 
 // Get All Candidates
-router.get(
-    "/",
-    authMiddleware,
-    candidateController.getCandidates
-);
+router.get("/", authMiddleware, candidateController.getCandidates);
 
 // Get Candidate By Id
-router.get(
-    "/:id",
-    authMiddleware,
-    candidateController.getCandidate
-);
+router.get("/:id", authMiddleware, candidateController.getCandidate);
 
 // Update Candidate
 router.put(

@@ -1,3 +1,4 @@
+const path = require("path");
 const express = require("express");
 
 const swaggerUi = require("swagger-ui-express");
@@ -12,7 +13,7 @@ const residentRoutes = require("./routes/resident.routes");
 const electionRoutes = require("./routes/election.routes");
 const candidateRoutes = require("./routes/candidate.routes");
 const voteRoutes = require("./routes/vote.routes");
-
+const dashboardRoutes = require("./routes/dashboard.routes");
 // Error Middleware
 const errorHandler = require("./middleware/error.middleware");
 
@@ -21,7 +22,12 @@ const app = express();
 app.disable("x-powered-by");
 
 app.use(express.json());
-
+app.use(
+    express.static(
+        path.join(__dirname, "../public")
+    )
+);
+app.use(express.static(path.join(__dirname, "../public")));
 // ========================================
 // Swagger Documentation
 // ========================================
@@ -63,7 +69,7 @@ app.get("/", (req, res) => {
         status: "Running 🚀"
     });
 });
-
+app.use("/api/dashboard", dashboardRoutes);
 // ========================================
 // Error Handler
 // ========================================

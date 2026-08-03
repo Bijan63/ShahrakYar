@@ -1,5 +1,5 @@
 const AppError = require("../utils/AppError");
-
+const { getIO } = require("../socket/socket");
 const voteRepository = require("../repositories/vote.repository");
 const electionRepository = require("../repositories/election.repository");
 const candidateRepository = require("../repositories/candidate.repository");
@@ -57,13 +57,22 @@ class VoteService {
             throw new AppError("Resident has already voted.", 409);
         }
 
-        return await voteRepository.create({
+        const vote = await voteRepository.create({
             residentId,
-
             candidateId,
-
             electionId
         });
+
+        // ارسال رویداد زنده
+        const io = getIO();
+
+        io.emit("vote-created", {
+            electionId,
+            candidateId,
+            residentId
+        });
+
+        return vote;
     }
 }
 

@@ -1,0 +1,74 @@
+<!doctype html>
+<html lang="en">
+    <head>
+        <meta charset="UTF-8" />
+
+        <title>Live Election Dashboard</title>
+
+        <script src="/socket.io/socket.io.js"></script>
+
+        <style>
+            body {
+                font-family: Arial;
+
+                margin: 40px;
+            }
+
+            .card {
+                padding: 15px;
+
+                margin: 10px;
+
+                border: 1px solid #ddd;
+
+                border-radius: 10px;
+
+                width: 400px;
+            }
+
+            .vote {
+                font-size: 20px;
+
+                color: #1976d2;
+            }
+        </style>
+    </head>
+
+    <body>
+        <h1>🏡 ShahrakYar Live Dashboard</h1>
+
+        <div id="result"></div>
+
+        <script>
+            const socket = io();
+
+            socket.on("connect", () => {
+                console.log("Connected:", socket.id);
+            });
+
+            socket.on("election-updated", (data) => {
+                const container = document.getElementById("result");
+
+                container.innerHTML = "";
+
+                data.candidates.forEach((c) => {
+                    container.innerHTML += `
+
+        <div class="card">
+
+        <h2>${c.resident.fullName}</h2>
+
+        <div class="vote">
+
+            Votes : ${c._count.votes}
+
+        </div>
+
+        </div>
+
+        `;
+                });
+            });
+        </script>
+    </body>
+</html>

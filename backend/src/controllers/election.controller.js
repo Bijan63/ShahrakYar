@@ -1,12 +1,12 @@
 const electionService = require("../services/election.service");
 
-// ایجاد انتخابات
 const createElection = async (req, res, next) => {
     try {
         const election = await electionService.createElection(req.body);
 
         return res.status(201).json({
             success: true,
+
             election
         });
     } catch (err) {
@@ -14,7 +14,20 @@ const createElection = async (req, res, next) => {
     }
 };
 
-// نمایش همه انتخابات
+const getElection = async (req, res, next) => {
+    try {
+        const election = await electionService.getElection(req.params.id);
+
+        return res.json({
+            success: true,
+
+            election
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
 const getElections = async (req, res, next) => {
     try {
         const elections = await electionService.getElections();
@@ -29,14 +42,47 @@ const getElections = async (req, res, next) => {
     }
 };
 
-// نتایج انتخابات
-const getElectionResults = async (req, res, next) => {
+const openElection = async (req, res, next) => {
     try {
-        const electionId = parseInt(req.params.id);
+        const election = await electionService.openElection(req.params.id);
 
-        const result = await electionService.getElectionResults(electionId);
+        return res.json({
+            success: true,
 
-        return res.json(result);
+            message: "Election opened successfully.",
+
+            election
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const closeElection = async (req, res, next) => {
+    try {
+        const election = await electionService.closeElection(req.params.id);
+
+        return res.json({
+            success: true,
+
+            message: "Election closed successfully.",
+
+            election
+        });
+    } catch (err) {
+        next(err);
+    }
+};
+
+const getResult = async (req, res, next) => {
+    try {
+        const result = await electionService.getResult(req.params.id);
+
+        return res.json({
+            success: true,
+
+            result
+        });
     } catch (err) {
         next(err);
     }
@@ -44,6 +90,14 @@ const getElectionResults = async (req, res, next) => {
 
 module.exports = {
     createElection,
+
+    getElection,
+
     getElections,
-    getElectionResults
+
+    openElection,
+
+    closeElection,
+
+    getResult
 };

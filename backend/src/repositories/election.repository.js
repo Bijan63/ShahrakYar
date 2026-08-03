@@ -2,29 +2,71 @@ const prisma = require("../config/prisma");
 
 class ElectionRepository {
     async create(data) {
-        return prisma.election.create({
+        return await prisma.election.create({
             data
         });
     }
 
-    async findAll() {
-        return prisma.election.findMany({
-            orderBy: {
-                createdAt: "desc"
+    async findById(id) {
+        return await prisma.election.findUnique({
+            where: {
+                id
+            },
+            include: {
+                candidates: true
             }
         });
     }
 
-    async findById(id) {
-        return prisma.election.findUnique({
+    async findAll() {
+        return await prisma.election.findMany({
+            orderBy: {
+                startDate: "desc"
+            }
+        });
+    }
+
+    async update(id, data) {
+        return await prisma.election.update({
+            where: {
+                id
+            },
+            data
+        });
+    }
+
+    async delete(id) {
+        return await prisma.election.delete({
             where: {
                 id
             }
         });
     }
 
-    async findByIdWithCandidates(id) {
-        return prisma.election.findUnique({
+    async openElection(id) {
+        return await prisma.election.update({
+            where: {
+                id
+            },
+            data: {
+                status: "OPEN"
+            }
+        });
+    }
+
+    async closeElection(id) {
+        return await prisma.election.update({
+            where: {
+                id
+            },
+            data: {
+                status: "CLOSED"
+            }
+        });
+    }
+
+    async getResult(id) {
+        const election = await prisma.election.findUnique({
             where: {
                 id
             },
@@ -37,24 +79,8 @@ class ElectionRepository {
                 }
             }
         });
-    }
 
-    async update(id, data) {
-        return prisma.election.update({
-            where: {
-                id
-            },
-
-            data
-        });
-    }
-
-    async delete(id) {
-        return prisma.election.delete({
-            where: {
-                id
-            }
-        });
+        return election;
     }
 }
 

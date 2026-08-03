@@ -2,13 +2,29 @@ const prisma = require("../config/prisma");
 
 class UserRepository {
     async create(data) {
-        return await prisma.user.create({
+        return prisma.user.create({
             data
         });
     }
 
+    async findAll(skip = 0, take = 20) {
+        return prisma.user.findMany({
+            skip,
+
+            take,
+
+            orderBy: {
+                id: "asc"
+            }
+        });
+    }
+
+    async count() {
+        return prisma.user.count();
+    }
+
     async findById(id) {
-        return await prisma.user.findUnique({
+        return prisma.user.findUnique({
             where: {
                 id
             }
@@ -16,15 +32,29 @@ class UserRepository {
     }
 
     async findByEmail(email) {
-        return await prisma.user.findUnique({
+        return prisma.user.findUnique({
             where: {
                 email
             }
         });
     }
 
+    async exists(id) {
+        const user = await prisma.user.findUnique({
+            where: {
+                id
+            },
+
+            select: {
+                id: true
+            }
+        });
+
+        return !!user;
+    }
+
     async update(id, data) {
-        return await prisma.user.update({
+        return prisma.user.update({
             where: {
                 id
             },
@@ -34,7 +64,7 @@ class UserRepository {
     }
 
     async delete(id) {
-        return await prisma.user.delete({
+        return prisma.user.delete({
             where: {
                 id
             }

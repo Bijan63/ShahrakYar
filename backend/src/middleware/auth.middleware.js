@@ -1,10 +1,11 @@
 const jwt = require("jsonwebtoken");
-
 const AppError = require("../utils/AppError");
 
 const authMiddleware = (req, res, next) => {
     try {
         const authHeader = req.headers.authorization;
+
+        console.log("Authorization Header:", authHeader);
 
         if (!authHeader) {
             throw new AppError("Access token is required.", 401);
@@ -12,23 +13,20 @@ const authMiddleware = (req, res, next) => {
 
         const token = authHeader.replace("Bearer ", "");
 
-        const decoded = jwt.verify(
-            token,
-            process.env.JWT_SECRET
-        );
+        console.log("Extracted Token:", token);
+
+        const decoded = jwt.verify(token, process.env.JWT_SECRET);
 
         req.user = decoded;
 
         next();
 
     } catch (err) {
-
         console.error(err);
 
         return res.status(401).json({
             message: "Invalid token"
         });
-
     }
 };
 

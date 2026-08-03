@@ -1,175 +1,118 @@
 const prisma = require("../config/prisma");
 
 class ResidentRepository {
-
     async create(data) {
-
-        return await prisma.resident.create({
+        return prisma.resident.create({
             data
         });
-
     }
 
     async findById(id) {
-
-        return await prisma.resident.findUnique({
-
+        return prisma.resident.findUnique({
             where: {
                 id
             },
-
             include: {
                 user: true,
-                unit: true
+                unit: {
+                    include: {
+                        building: true
+                    }
+                }
             }
-
         });
-
     }
 
     async findByUserId(userId) {
-
-        return await prisma.resident.findUnique({
-
+        return prisma.resident.findUnique({
             where: {
                 userId
             }
-
         });
-
     }
 
     async findByMobile(mobile) {
-
-        return await prisma.resident.findFirst({
-
+        return prisma.resident.findFirst({
             where: {
                 mobile
             }
-
         });
-
     }
 
     async findAll(skip = 0, take = 20) {
-
-        return await prisma.resident.findMany({
-
+        return prisma.resident.findMany({
             skip,
-
             take,
-
             include: {
-
                 user: true,
-
-                unit: true
-
+                unit: {
+                    include: {
+                        building: true
+                    }
+                }
             },
-
             orderBy: {
-
                 fullName: "asc"
-
             }
-
         });
+    }
 
+    async search({ skip, take, where, orderBy }) {
+        return prisma.resident.findMany({
+            skip,
+            take,
+            where,
+            include: {
+                user: true,
+                unit: {
+                    include: {
+                        building: true
+                    }
+                }
+            },
+            orderBy
+        });
     }
 
     async count() {
+        return prisma.resident.count();
+    }
 
-        return await prisma.resident.count();
-
+    async countSearch(where) {
+        return prisma.resident.count({
+            where
+        });
     }
 
     async exists(id) {
-
         const resident = await prisma.resident.findUnique({
-
             where: {
                 id
             },
-
             select: {
                 id: true
             }
-
         });
 
         return !!resident;
-
-    }
-
-    async search(keyword) {
-
-        return await prisma.resident.findMany({
-
-            where: {
-
-                OR: [
-
-                    {
-                        fullName: {
-                            contains: keyword,
-                            mode: "insensitive"
-                        }
-                    },
-
-                    {
-                        mobile: {
-                            contains: keyword
-                        }
-                    }
-
-                ]
-
-            },
-
-            include: {
-
-                user: true,
-
-                unit: true
-
-            },
-
-            orderBy: {
-
-                fullName: "asc"
-
-            }
-
-        });
-
     }
 
     async update(id, data) {
-
-        return await prisma.resident.update({
-
+        return prisma.resident.update({
             where: {
                 id
             },
-
             data
-
         });
-
     }
 
     async delete(id) {
-
-        return await prisma.resident.delete({
-
+        return prisma.resident.delete({
             where: {
                 id
             }
-
         });
-
     }
-
 }
 
 module.exports = new ResidentRepository();

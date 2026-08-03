@@ -1,4 +1,3 @@
-
 const express = require("express");
 
 const router = express.Router();
@@ -17,18 +16,10 @@ router.post(
 );
 
 // Get All Buildings
-router.get(
-    "/",
-    authMiddleware,
-    buildingController.getBuildings
-);
+router.get("/", authMiddleware, buildingController.getBuildings);
 
 // Get Building By Id
-router.get(
-    "/:id",
-    authMiddleware,
-    buildingController.getBuilding
-);
+router.get("/:id", authMiddleware, buildingController.getBuilding);
 
 // Update Building
 router.put(
