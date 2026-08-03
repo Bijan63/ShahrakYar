@@ -14,6 +14,7 @@ const electionRoutes = require("./routes/election.routes");
 const candidateRoutes = require("./routes/candidate.routes");
 const voteRoutes = require("./routes/vote.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
+const complexRoutes = require("./routes/complex.routes");
 // Error Middleware
 const errorHandler = require("./middleware/error.middleware");
 
@@ -69,7 +70,9 @@ app.get("/", (req, res) => {
         status: "Running 🚀"
     });
 });
+app.use("/api/complexes", complexRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+
 // ========================================
 // Error Handler
 // ========================================

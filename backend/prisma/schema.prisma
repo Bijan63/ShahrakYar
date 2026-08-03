@@ -7,7 +7,6 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-
 enum UserRole {
   ADMIN
   MANAGER
@@ -20,110 +19,123 @@ enum ResidentType {
 }
 
 model User {
+  id Int @id @default(autoincrement())
 
+  fullName String
+  email    String @unique
+  password String
+
+  role UserRole @default(USER)
+
+  resident Resident?
+
+  createdAt DateTime @default(now())
+}
+
+model Complex {
+  id Int @id @default(autoincrement())
+
+  name String
+
+  address String?
+
+  description String?
+
+  createdAt DateTime @default(now())
+
+  buildings Building[]
+}
+
+model Building {
   id         Int      @id @default(autoincrement())
-
-  fullName   String
-  email      String   @unique
-  password   String
-
-  role       UserRole @default(USER)
-
-  resident   Resident?
-
+  name       String
+  address    String
+  floors     Int
+  totalUnits Int
   createdAt  DateTime @default(now())
 
-}
-model Building {
-  id          Int      @id @default(autoincrement())
-  name        String
-  address     String
-  floors      Int
-  totalUnits  Int
-  createdAt   DateTime @default(now())
-
-  units       Unit[]
+  units     Unit[]
+  complex   Complex? @relation(fields: [complexId], references: [id])
+  complexId Int?
 }
 
 model Unit {
-  id          Int      @id @default(autoincrement())
-  unitNumber  String
-  floor       Int
-  area        Float?
+  id         Int    @id @default(autoincrement())
+  unitNumber String
+  floor      Int
+  area       Float?
 
-  buildingId  Int
-  building    Building @relation(fields: [buildingId], references: [id])
+  buildingId Int
+  building   Building @relation(fields: [buildingId], references: [id])
 
-  residents   Resident[]
+  residents Resident[]
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model Resident {
+  id Int @id @default(autoincrement())
 
-  id           Int      @id @default(autoincrement())
-
-  fullName     String
-  mobile       String
+  fullName String
+  mobile   String
 
   residentType ResidentType
 
-  userId       Int @unique
-  user         User @relation(fields: [userId], references: [id])
+  userId Int  @unique
+  user   User @relation(fields: [userId], references: [id])
 
-  unitId       Int
-  unit         Unit @relation(fields: [unitId], references: [id])
+  unitId Int
+  unit   Unit @relation(fields: [unitId], references: [id])
 
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  votes        Vote[]
-
+  votes Vote[]
 }
 
 model Election {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
   title       String
   description String?
 
-  startDate   DateTime
-  endDate     DateTime
+  startDate DateTime
+  endDate   DateTime
 
-  status      String   @default("OPEN")
+  status String @default("OPEN")
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 
-  candidates  Candidate[]
-  votes       Vote[]
+  candidates Candidate[]
+  votes      Vote[]
 }
 
 model Candidate {
-  id          Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  fullName    String
-  biography   String?
+  fullName  String
+  biography String?
 
-  electionId  Int
-  election    Election @relation(fields: [electionId], references: [id])
+  electionId Int
+  election   Election @relation(fields: [electionId], references: [id])
 
-  votes       Vote[]
+  votes Vote[]
 
-  createdAt   DateTime @default(now())
+  createdAt DateTime @default(now())
 }
 
 model Vote {
-  id           Int      @id @default(autoincrement())
+  id Int @id @default(autoincrement())
 
-  residentId   Int
-  resident      Resident @relation(fields: [residentId], references: [id])
+  residentId Int
+  resident   Resident @relation(fields: [residentId], references: [id])
 
-  candidateId  Int
-  candidate     Candidate @relation(fields: [candidateId], references: [id])
+  candidateId Int
+  candidate   Candidate @relation(fields: [candidateId], references: [id])
 
-  electionId   Int
-  election      Election @relation(fields: [electionId], references: [id])
+  electionId Int
+  election   Election @relation(fields: [electionId], references: [id])
 
-  createdAt    DateTime @default(now())
+  createdAt DateTime @default(now())
 
   @@unique([residentId, electionId, candidateId])
 }
