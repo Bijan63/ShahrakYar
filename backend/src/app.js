@@ -15,6 +15,11 @@ const candidateRoutes = require("./routes/candidate.routes");
 const voteRoutes = require("./routes/vote.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const complexRoutes = require("./routes/complex.routes");
+const residencyRoutes = require("./routes/residency.routes");
+
+const propertyRoutes = require("./routes/property.routes");
+const personRoutes = require("./routes/person.routes");
+const ownershipRoutes = require("./routes/ownership.routes");
 // Error Middleware
 const errorHandler = require("./middleware/error.middleware");
 
@@ -55,6 +60,18 @@ app.use("/api/candidates", candidateRoutes);
 
 app.use("/api/votes", voteRoutes);
 
+app.use("/api/properties", propertyRoutes);
+
+app.use("/api/ownerships", ownershipRoutes);
+
+app.use("/api/persons", personRoutes);
+
+app.use(
+    "/api/residencies",
+    residencyRoutes
+);
+
+
 // ========================================
 // Home Route
 // ========================================
@@ -70,6 +87,7 @@ app.get("/", (req, res) => {
         status: "Running 🚀"
     });
 });
+app.use("/api/properties", propertyRoutes);
 app.use("/api/complexes", complexRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 

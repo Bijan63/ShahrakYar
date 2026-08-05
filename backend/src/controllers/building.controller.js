@@ -1,134 +1,131 @@
-const prisma = require("../config/prisma");
+const buildingService = require("../services/building.service");
+
 
 // Create Building
-const createBuilding = async (req, res) => {
-    try {
-        const { name, address, floors, totalUnits } = req.body;
+const createBuilding = async (req, res, next) => {
 
-        const building = await prisma.building.create({
-            data: {
-                name,
-                address,
-                floors,
-                totalUnits
-            }
-        });
+    try {
+
+        const building = await buildingService.createBuilding(
+            req.body
+        );
 
         return res.status(201).json({
             success: true,
             building
         });
-    } catch (error) {
-        console.error(error);
 
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error"
-        });
+    } catch (err) {
+
+        next(err);
+
     }
+
 };
+
 
 // Get All Buildings
-const getBuildings = async (req, res) => {
-    const buildings = await prisma.building.findMany({
-        orderBy: {
-            id: "asc"
-        }
-    });
+const getBuildings = async (req, res, next) => {
 
-    return res.json({
-        success: true,
-        buildings
-    });
+    try {
+
+        const buildings = await buildingService.getBuildings();
+
+        return res.status(200).json({
+            success: true,
+            buildings
+        });
+
+    } catch (err) {
+
+        next(err);
+
+    }
+
 };
 
+
 // Get Building By Id
-const getBuilding = async (req, res) => {
+const getBuilding = async (req, res, next) => {
+
     try {
-        const id = Number(req.params.id);
 
-        const building = await prisma.building.findUnique({
-            where: {
-                id
-            },
-
-            include: {
-                units: true
-            }
-        });
+        const building = await buildingService.getBuildingById(
+            req.params.id
+        );
 
         if (!building) {
             return res.status(404).json({
                 success: false,
-                message: "Building not found."
+                message: "Building not found"
             });
         }
 
-        return res.json({
+
+        return res.status(200).json({
             success: true,
             building
         });
-    } catch (error) {
-        console.error(error);
 
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error"
-        });
+
+    } catch (err) {
+
+        next(err);
+
     }
+
 };
+
 
 // Update Building
-const updateBuilding = async (req, res) => {
+const updateBuilding = async (req, res, next) => {
+
     try {
-        const id = Number(req.params.id);
 
-        const building = await prisma.building.update({
-            where: {
-                id
-            },
+        const building = await buildingService.updateBuilding(
+            req.params.id,
+            req.body
+        );
 
-            data: req.body
-        });
-
-        return res.json({
+        return res.status(200).json({
             success: true,
             building
         });
-    } catch (error) {
-        console.error(error);
 
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error"
-        });
+
+    } catch (err) {
+
+        next(err);
+
     }
+
 };
+
 
 // Delete Building
-const deleteBuilding = async (req, res) => {
+const deleteBuilding = async (req, res, next) => {
+
     try {
-        const id = Number(req.params.id);
 
-        await prisma.building.delete({
-            where: {
-                id
-            }
-        });
+        const building = await buildingService.deleteBuilding(
+            req.params.id
+        );
 
-        return res.json({
+        return res.status(200).json({
             success: true,
-            message: "Building deleted successfully."
+            message: "Building deleted successfully",
+            building
         });
-    } catch (error) {
-        console.error(error);
 
-        return res.status(500).json({
-            success: false,
-            message: "Internal Server Error"
-        });
+
+    } catch (err) {
+
+        next(err);
+
     }
+
 };
+
 
 module.exports = {
     createBuilding,

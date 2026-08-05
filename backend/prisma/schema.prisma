@@ -7,30 +7,57 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-enum UserRole {
-  ADMIN
-  MANAGER
-  USER
-}
-
-enum ResidentType {
-  OWNER
-  TENANT
-}
+// =====================
+// Users & Persons
+// =====================
 
 model User {
   id Int @id @default(autoincrement())
 
   fullName String
-  email    String @unique
+
+  email String @unique
+
   password String
 
   role UserRole @default(USER)
 
+  createdAt DateTime @default(now())
+
   resident Resident?
 
-  createdAt DateTime @default(now())
+  personId Int? @unique
+
+  person Person? @relation(fields: [personId], references: [id])
 }
+
+model Person {
+  id Int @id @default(autoincrement())
+
+  firstName String
+
+  lastName String
+
+  nationalId String?
+
+  mobile String
+
+  email String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  user User?
+
+  ownerships Ownership[]
+
+  residencies Residency[]
+}
+
+// =====================
+// Complex / Building
+// =====================
 
 model Complex {
   id Int @id @default(autoincrement())
@@ -43,99 +70,320 @@ model Complex {
 
   createdAt DateTime @default(now())
 
+  updatedAt DateTime @updatedAt
+
   buildings Building[]
+
+  properties Property[]
 }
 
 model Building {
-  id         Int      @id @default(autoincrement())
-  name       String
-  address    String
-  floors     Int
-  totalUnits Int
-  createdAt  DateTime @default(now())
+  id Int @id @default(autoincrement())
 
-  units     Unit[]
-  complex   Complex? @relation(fields: [complexId], references: [id])
-  complexId Int?
-}
+  name String
 
-model Unit {
-  id         Int    @id @default(autoincrement())
-  unitNumber String
-  floor      Int
-  area       Float?
+  address String?
 
-  buildingId Int
-  building   Building @relation(fields: [buildingId], references: [id])
+  description String?
+
+  complexId Int
+
+  complex Complex @relation(fields: [complexId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  units Unit[]
 
   residents Resident[]
 
-  createdAt DateTime @default(now())
+  @@unique([complexId, name])
 }
+
+// =====================
+// Property
+// =====================
+
+model Property {
+  id Int @id @default(autoincrement())
+
+  complexId Int
+
+  complex Complex @relation(fields: [complexId], references: [id], onDelete: Cascade)
+
+  code String @unique
+
+  registryNumber String?
+
+  propertyType PropertyType
+
+  status PropertyStatus
+
+  landArea Float?
+
+  builtArea Float?
+
+  description String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  units Unit[]
+
+  ownerships Ownership[]
+
+  residencies Residency[]
+
+  addresses PropertyAddress[]
+}
+
+// =====================
+// Unit
+// =====================
+
+model Unit {
+  id Int @id @default(autoincrement())
+
+  unitNumber String
+
+  floor Int?
+
+  area Float?
+
+  code String? @unique
+
+  buildingId Int?
+
+  building Building? @relation(fields: [buildingId], references: [id])
+
+  propertyId Int?
+
+  property Property? @relation(fields: [propertyId], references: [id])
+
+  createdAt DateTime @default(now())
+
+  residents Resident[]
+}
+
+// =====================
+// Address
+// =====================
+
+model PropertyAddress {
+  id Int @id @default(autoincrement())
+
+  propertyId Int
+
+  mainStreet String?
+
+  subStreet String?
+
+  alley String?
+
+  number String?
+
+  description String?
+
+  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+}
+
+// =====================
+// Ownership
+// =====================
+
+model Ownership {
+  id Int @id @default(autoincrement())
+
+  propertyId Int
+
+  personId Int
+
+  percentage Float @default(100)
+
+  startDate DateTime @default(now())
+
+  endDate DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  person Person @relation(fields: [personId], references: [id])
+}
+
+// =====================
+// Residency
+// =====================
+
+model Residency {
+  id Int @id @default(autoincrement())
+
+  propertyId Int
+
+  personId Int
+
+  type ResidencyType
+
+  startDate DateTime @default(now())
+
+  endDate DateTime?
+
+  property Property @relation(fields: [propertyId], references: [id])
+
+  person Person @relation(fields: [personId], references: [id])
+}
+
+// =====================
+// Property Split / Merge
+// =====================
+
+// =====================
+// Resident
+// =====================
 
 model Resident {
   id Int @id @default(autoincrement())
 
   fullName String
-  mobile   String
+
+  mobile String
 
   residentType ResidentType
 
-  userId Int  @unique
-  user   User @relation(fields: [userId], references: [id])
+  userId Int @unique
 
   unitId Int
-  unit   Unit @relation(fields: [unitId], references: [id])
+
+  buildingId Int?
 
   createdAt DateTime @default(now())
 
-  votes Vote[]
+  unit Unit @relation(fields: [unitId], references: [id])
+
+  user User @relation(fields: [userId], references: [id])
+
+  building Building? @relation(fields: [buildingId], references: [id])
+  votes    Vote[]
 }
+
+// =====================
+// Election
+// =====================
 
 model Election {
   id Int @id @default(autoincrement())
 
-  title       String
+  title String
+
   description String?
 
   startDate DateTime
-  endDate   DateTime
+
+  endDate DateTime
 
   status String @default("OPEN")
 
   createdAt DateTime @default(now())
 
   candidates Candidate[]
-  votes      Vote[]
+
+  votes Vote[]
 }
+
+// =====================
+// Candidate
+// =====================
 
 model Candidate {
   id Int @id @default(autoincrement())
 
-  fullName  String
+  fullName String
+
   biography String?
 
   electionId Int
-  election   Election @relation(fields: [electionId], references: [id])
-
-  votes Vote[]
 
   createdAt DateTime @default(now())
+
+  election Election @relation(fields: [electionId], references: [id])
+
+  votes Vote[]
 }
+
+// =====================
+// Vote
+// =====================
 
 model Vote {
   id Int @id @default(autoincrement())
 
   residentId Int
-  resident   Resident @relation(fields: [residentId], references: [id])
 
   candidateId Int
-  candidate   Candidate @relation(fields: [candidateId], references: [id])
 
   electionId Int
-  election   Election @relation(fields: [electionId], references: [id])
 
   createdAt DateTime @default(now())
 
+  candidate Candidate @relation(fields: [candidateId], references: [id])
+
+  election Election @relation(fields: [electionId], references: [id])
+
+  resident Resident @relation(fields: [residentId], references: [id])
+
   @@unique([residentId, electionId, candidateId])
+}
+
+// =====================
+// ENUMS
+// =====================
+
+enum PropertyType {
+  LAND
+
+  VILLA
+
+  APARTMENT
+
+  COMMERCIAL
+}
+
+enum PropertyStatus {
+  VACANT
+
+  BUILT
+
+  UNDER_CONSTRUCTION
+
+  INACTIVE
+}
+
+enum PropertyRelationType {
+  SPLIT
+
+  MERGE
+
+  REPLACED
+}
+
+enum ResidencyType {
+  OWNER
+
+  TENANT
+
+  FAMILY
+}
+
+enum UserRole {
+  ADMIN
+
+  MANAGER
+
+  USER
+}
+
+enum ResidentType {
+  OWNER
+
+  TENANT
 }

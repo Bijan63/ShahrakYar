@@ -1,57 +1,115 @@
 const prisma = require("../config/prisma");
 
 class DashboardRepository {
+
     async getStatistics() {
+
         const [
-            buildings,
-            units,
-            residents,
-            owners,
-            tenants,
-            activeElections,
-            candidates,
-            votes
+
+            complexes,
+
+            properties,
+
+            villas,
+
+            lands,
+
+            apartments,
+
+            commercials,
+
+            persons,
+
+            ownerships,
+
+            residencies,
+
+            ownerResidents,
+
+            tenantResidents
+
         ] = await Promise.all([
-            prisma.building.count(),
 
-            prisma.unit.count(),
+            prisma.complex.count(),
 
-            prisma.resident.count(),
+            prisma.property.count(),
 
-            prisma.resident.count({
+            prisma.property.count({
                 where: {
-                    residentType: "OWNER"
+                    propertyType: "VILLA"
                 }
             }),
 
-            prisma.resident.count({
+            prisma.property.count({
                 where: {
-                    residentType: "TENANT"
+                    propertyType: "LAND"
                 }
             }),
 
-            prisma.election.count({
+            prisma.property.count({
                 where: {
-                    status: "OPEN"
+                    propertyType: "APARTMENT"
                 }
             }),
 
-            prisma.candidate.count(),
+            prisma.property.count({
+                where: {
+                    propertyType: "COMMERCIAL"
+                }
+            }),
 
-            prisma.vote.count()
+            prisma.person.count(),
+
+            prisma.ownership.count(),
+
+            prisma.residency.count(),
+
+            prisma.residency.count({
+                where: {
+                    type: "OWNER"
+                }
+            }),
+
+            prisma.residency.count({
+                where: {
+                    type: "TENANT"
+                }
+            })
+
         ]);
 
         return {
-            buildings,
-            units,
-            residents,
-            owners,
-            tenants,
-            activeElections,
-            candidates,
-            votes
+
+            complexes,
+
+            properties,
+
+            propertyTypes: {
+
+                villas,
+
+                lands,
+
+                apartments,
+
+                commercials
+
+            },
+
+            persons,
+
+            ownerships,
+
+            residencies,
+
+            ownerResidents,
+
+            tenantResidents
+
         };
+
     }
+
 }
 
 module.exports = new DashboardRepository();
