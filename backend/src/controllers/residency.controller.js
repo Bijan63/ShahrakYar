@@ -1,19 +1,28 @@
 const residencyService = require("../services/residency.service");
 
+const ResponseHelper = require("../helpers/response.helper");
+
+const residencyMapper = require("../mappers/residency.mapper");
+
+
 
 // Create Residency
 const createResidency = async (req, res, next) => {
 
     try {
 
-        const residency = await residencyService.createResidency(
-            req.body
+        const residency =
+            await residencyService.createResidency(
+                req.body
+            );
+
+
+        ResponseHelper.created(
+            res,
+            "Residency created successfully",
+            residencyMapper(residency)
         );
 
-        res.status(201).json({
-            success: true,
-            residency
-        });
 
     } catch (error) {
 
@@ -22,6 +31,7 @@ const createResidency = async (req, res, next) => {
     }
 
 };
+
 
 
 // Get All Residencies
@@ -29,12 +39,16 @@ const getResidencies = async (req, res, next) => {
 
     try {
 
-        const residencies = await residencyService.getResidencies();
+        const residencies =
+            await residencyService.getResidencies();
 
-        res.json({
-            success: true,
-            residencies
-        });
+
+        ResponseHelper.success(
+            res,
+            "Residencies fetched successfully",
+            residencies.map(residencyMapper)
+        );
+
 
     } catch (error) {
 
@@ -45,19 +59,24 @@ const getResidencies = async (req, res, next) => {
 };
 
 
-// Get By ID
+
+// Get Residency By ID
 const getResidencyById = async (req, res, next) => {
 
     try {
 
-        const residency = await residencyService.getResidencyById(
-            req.params.id
+        const residency =
+            await residencyService.getResidencyById(
+                req.params.id
+            );
+
+
+        ResponseHelper.success(
+            res,
+            "Residency fetched successfully",
+            residencyMapper(residency)
         );
 
-        res.json({
-            success: true,
-            residency
-        });
 
     } catch (error) {
 
@@ -68,20 +87,25 @@ const getResidencyById = async (req, res, next) => {
 };
 
 
-// Update
+
+// Update Residency
 const updateResidency = async (req, res, next) => {
 
     try {
 
-        const residency = await residencyService.updateResidency(
-            req.params.id,
-            req.body
+        const residency =
+            await residencyService.updateResidency(
+                req.params.id,
+                req.body
+            );
+
+
+        ResponseHelper.success(
+            res,
+            "Residency updated successfully",
+            residencyMapper(residency)
         );
 
-        res.json({
-            success: true,
-            residency
-        });
 
     } catch (error) {
 
@@ -92,7 +116,8 @@ const updateResidency = async (req, res, next) => {
 };
 
 
-// Delete
+
+// Delete Residency
 const deleteResidency = async (req, res, next) => {
 
     try {
@@ -101,14 +126,38 @@ const deleteResidency = async (req, res, next) => {
             req.params.id
         );
 
-        res.json({
-            success: true,
-            message: "Residency deleted successfully"
-        });
+
+        ResponseHelper.success(
+            res,
+            "Residency deleted successfully"
+        );
+
 
     } catch (error) {
 
         next(error);
+
+    }
+
+};
+
+const getResidentsByProperty = async (req, res, next) => {
+
+    try {
+
+        const residents =
+            await residencyService.getResidentsByProperty(
+                req.params.propertyId
+            );
+
+        return res.status(200).json({
+            success: true,
+            data: residents
+        });
+
+    } catch (err) {
+
+        next(err);
 
     }
 
@@ -118,9 +167,15 @@ const deleteResidency = async (req, res, next) => {
 module.exports = {
 
     createResidency,
+
     getResidencies,
+
     getResidencyById,
+
     updateResidency,
-    deleteResidency
+
+    deleteResidency,
+
+    getResidentsByProperty
 
 };

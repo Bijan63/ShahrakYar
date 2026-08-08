@@ -1,146 +1,186 @@
-const { getIO } = require("../socket/socket");
-
 const residentService = require("../services/resident.service");
 
+const ResponseHelper = require("../helpers/response.helper");
+
+const residentDTO = require("../dto/resident.dto");
+
+
+// Create Resident
 const createResident = async (req, res, next) => {
+
     try {
-        const resident = await residentService.createResident(req.body);
 
-        const io = getIO();
+        const resident =
+            await residentService.createResident(
+                req.body
+            );
 
-        io.emit("residentCreated", resident);
 
-        return res.status(201).json({
-            success: true,
-            resident
-        });
-    } catch (err) {
-        next(err);
-    }
-};
-
-const getResident = async (req, res, next) => {
-    try {
-        const resident = await residentService.getResidentById(
-            Number(req.params.id)
+        ResponseHelper.created(
+            res,
+            "Resident created successfully",
+            residentDTO(resident)
         );
 
-        return res.status(200).json({
-            success: true,
 
-            resident
-        });
-    } catch (err) {
-        next(err);
+    } catch (error) {
+
+        next(error);
+
     }
+
 };
 
+
+
+// Get All Residents
 const getResidents = async (req, res, next) => {
+
     try {
-        const page = Number(req.query.page) || 1;
 
-        const limit = Number(req.query.limit) || 20;
+        const residents =
+            await residentService.getResidents();
 
-        const residents = await residentService.getResidents(page, limit);
 
-        return res.status(200).json({
-            success: true,
+        ResponseHelper.success(
+            res,
+            "Residents fetched successfully",
+            residents.map(residentDTO)
+        );
 
-            ...residents
-        });
-    } catch (err) {
-        next(err);
+
+    } catch (error) {
+
+        next(error);
+
     }
+
 };
 
-const searchResidents = async (req, res, next) => {
+
+
+// Get Resident By ID
+const getResident = async (req, res, next) => {
+
     try {
+
+        const resident =
+            await residentService.getResidentById(
+                req.params.id
+            );
+
+
+        ResponseHelper.success(
+            res,
+            "Resident fetched successfully",
+            residentDTO(resident)
+        );
+
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
+
+
+// Search Residents
+const searchResidents = async (req, res, next) => {
+
+    try {
+
         const {
-            search = "",
-
-            page = 1,
-
-            limit = 20,
-
-            buildingId,
-
-            unitId,
-
-            residentType,
-
-            sort = "fullName",
-
-            order = "asc"
+            search,
+            page,
+            limit
         } = req.query;
 
-        const result = await residentService.searchResidents({
-            search,
 
-            page: Number(page),
+        const residents =
+            await residentService.searchResidents(
+                search,
+                page,
+                limit
+            );
 
-            limit: Number(limit),
 
-            buildingId,
+        ResponseHelper.success(
+            res,
+            "Residents searched successfully",
+            residents.map(residentDTO)
+        );
 
-            unitId,
 
-            residentType,
+    } catch (error) {
 
-            sort,
+        next(error);
 
-            order
-        });
-
-        return res.status(200).json({
-            success: true,
-
-            ...result
-        });
-    } catch (err) {
-        next(err);
     }
+
 };
 
+
+
+// Update Resident
 const updateResident = async (req, res, next) => {
-    try {
-        const resident = await residentService.updateResident(
-            Number(req.params.id),
 
-            req.body
+    try {
+
+        const resident =
+            await residentService.updateResident(
+                req.params.id,
+                req.body
+            );
+
+
+        ResponseHelper.success(
+            res,
+            "Resident updated successfully",
+            residentDTO(resident)
         );
 
-        const io = getIO();
 
-        io.emit("residentUpdated", resident);
+    } catch (error) {
 
-        return res.status(200).json({
-            success: true,
+        next(error);
 
-            resident
-        });
-    } catch (err) {
-        next(err);
     }
+
 };
 
+
+
+// Delete Resident
 const deleteResident = async (req, res, next) => {
+
     try {
-        const result = await residentService.deleteResident(
-            Number(req.params.id)
+
+        await residentService.deleteResident(
+            req.params.id
         );
 
-        const io = getIO();
 
-        io.emit("residentDeleted", {
-            id: Number(req.params.id)
-        });
-        return res.status(200).json(result);
-    } catch (err) {
-        next(err);
+        ResponseHelper.success(
+            res,
+            "Resident deleted successfully"
+        );
+
+
+    } catch (error) {
+
+        next(error);
+
     }
+
 };
+
+
 
 module.exports = {
+
     createResident,
 
     getResident,
@@ -152,4 +192,5 @@ module.exports = {
     updateResident,
 
     deleteResident
+
 };

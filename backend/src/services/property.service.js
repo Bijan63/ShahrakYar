@@ -2,7 +2,7 @@ const propertyRepository = require("../repositories/property.repository");
 
 
 // Create
-const createProperty = async(data)=>{
+const createProperty = async (data) => {
 
     return await propertyRepository.createProperty(data);
 
@@ -10,7 +10,7 @@ const createProperty = async(data)=>{
 
 
 // Get All
-const getProperties = async()=>{
+const getProperties = async () => {
 
     return await propertyRepository.getProperties();
 
@@ -18,7 +18,7 @@ const getProperties = async()=>{
 
 
 // Get One
-const getPropertyById = async(id)=>{
+const getPropertyById = async (id) => {
 
     return await propertyRepository.getPropertyById(id);
 
@@ -26,21 +26,42 @@ const getPropertyById = async(id)=>{
 
 
 // Update
-const updateProperty = async(id,data)=>{
+const updateProperty = async (id, data) => {
 
-    return await propertyRepository.updateProperty(id,data);
+    return await propertyRepository.updateProperty(
+        id,
+        data
+    );
 
 };
 
 
 // Delete
-const deleteProperty = async(id)=>{
+const deleteProperty = async (id) => {
 
     return await propertyRepository.deleteProperty(id);
 
 };
 
 
+// Search
+const searchProperties = async (q) => {
+
+    return await propertyRepository.searchProperties(q);
+
+};
+// Get Property Detail
+const getPropertyDetail = async (id) => {
+
+    return await propertyRepository.getPropertyDetail(id);
+
+};
+
+const getPropertyOwners = async (id) => {
+
+    return await propertyRepository.getPropertyOwners(id);
+
+};
 
 module.exports = {
 
@@ -48,6 +69,8 @@ module.exports = {
     getProperties,
     getPropertyById,
     updateProperty,
-    deleteProperty
-
+    deleteProperty,
+    searchProperties,
+    getPropertyDetail,
+    getPropertyOwners
 };

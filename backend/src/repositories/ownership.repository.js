@@ -1,97 +1,86 @@
 const prisma = require("../config/prisma");
 
-
-// Create Ownership
-const createOwnership = async (data) => {
-
-    return await prisma.ownership.create({
-        data
-    });
-
-};
+const BaseRepository = require("../core/BaseRepository");
 
 
-// Get All Ownerships
-const getOwnerships = async () => {
+class OwnershipRepository extends BaseRepository {
 
-    return await prisma.ownership.findMany({
+    constructor() {
 
-        include: {
+        super(prisma.ownership);
 
-            property: true,
-
-            person: true
-
-        }
-
-    });
-
-};
+    }
 
 
-// Get Ownership By ID
-const getOwnershipById = async (id) => {
+    // Create Ownership
+    async createOwnership(data) {
 
-    return await prisma.ownership.findUnique({
+        return await this.create(data);
 
-        where: {
-            id: Number(id)
-        },
-
-        include: {
-
-            property: true,
-
-            person: true
-
-        }
-
-    });
-
-};
+    }
 
 
-// Update Ownership
-const updateOwnership = async (id, data) => {
+    // Get All Ownerships
+    async getOwnerships() {
 
-    return await prisma.ownership.update({
+        return await this.findAll({
 
-        where: {
-            id: Number(id)
-        },
+            include: {
 
-        data
+                property: true,
 
-    });
+                person: true
 
-};
+            },
 
+            orderBy: {
 
-// Delete Ownership
-const deleteOwnership = async (id) => {
+                id: "asc"
 
-    return await prisma.ownership.delete({
+            }
 
-        where: {
-            id: Number(id)
-        }
+        });
 
-    });
-
-};
+    }
 
 
+    // Get Ownership By ID
+    async getOwnershipById(id) {
 
-module.exports = {
+        return await this.findById(id, {
 
-    createOwnership,
+            include: {
 
-    getOwnerships,
+                property: true,
 
-    getOwnershipById,
+                person: true
 
-    updateOwnership,
+            }
 
-    deleteOwnership
+        });
 
-};
+    }
+
+
+    // Update Ownership
+    async updateOwnership(id, data) {
+
+        return await this.update(
+            id,
+            data
+        );
+
+    }
+
+
+    // Delete Ownership
+    async deleteOwnership(id) {
+
+        return await this.delete(id);
+
+    }
+
+}
+
+
+module.exports = new OwnershipRepository();

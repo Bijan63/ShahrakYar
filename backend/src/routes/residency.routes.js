@@ -5,14 +5,12 @@ const router = express.Router();
 const residencyController = require("../controllers/residency.controller");
 
 
-
 /**
  * @swagger
  * tags:
  *   name: Residencies
  *   description: Property residency management
  */
-
 
 
 /**
@@ -37,12 +35,23 @@ const residencyController = require("../controllers/residency.controller");
  *               propertyId:
  *                 type: integer
  *                 example: 1
+ *
  *               personId:
  *                 type: integer
  *                 example: 1
+ *
  *               type:
  *                 type: string
+ *                 enum:
+ *                   - OWNER
+ *                   - TENANT
+ *                   - RESIDENT
  *                 example: OWNER
+ *
+ *               startDate:
+ *                 type: string
+ *                 format: date-time
+ *
  *     responses:
  *       201:
  *         description: Residency created
@@ -51,7 +60,6 @@ router.post(
     "/",
     residencyController.createResidency
 );
-
 
 
 /**
@@ -72,7 +80,6 @@ router.get(
 );
 
 
-
 /**
  * @swagger
  * /api/residencies/{id}:
@@ -87,6 +94,7 @@ router.get(
  *         required: true
  *         schema:
  *           type: integer
+ *
  *     responses:
  *       200:
  *         description: Residency found
@@ -97,6 +105,32 @@ router.get(
 );
 
 
+/**
+ * @swagger
+ * /api/residencies/property/{propertyId}/residents:
+ *   get:
+ *     summary: Get residents by property
+ *     tags: [Residencies]
+ *     security:
+ *       - bearerAuth: []
+ *
+ *     parameters:
+ *       - in: path
+ *         name: propertyId
+ *         required: true
+ *         schema:
+ *           type: integer
+ *         example: 1
+ *
+ *     responses:
+ *       200:
+ *         description: Residents list
+ */
+router.get(
+    "/property/:propertyId/residents",
+    residencyController.getResidentsByProperty
+);
+
 
 /**
  * @swagger
@@ -106,12 +140,29 @@ router.get(
  *     tags: [Residencies]
  *     security:
  *       - bearerAuth: []
+ *
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *
+ *     responses:
+ *       200:
+ *         description: Residency updated
  */
 router.put(
     "/:id",
     residencyController.updateResidency
 );
-
 
 
 /**
@@ -120,13 +171,24 @@ router.put(
  *   delete:
  *     summary: Delete residency
  *     tags: [Residencies]
- *     security: [bearerAuth: []]
+ *     security:
+ *       - bearerAuth: []
+ *
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: integer
+ *
+ *     responses:
+ *       200:
+ *         description: Residency deleted
  */
 router.delete(
     "/:id",
     residencyController.deleteResidency
 );
-
 
 
 module.exports = router;

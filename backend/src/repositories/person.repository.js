@@ -1,74 +1,100 @@
 const prisma = require("../config/prisma");
 
-// Create
-const createPerson = async (data) => {
+const BaseRepository = require("../core/BaseRepository");
 
-    return await prisma.person.create({
-        data
-    });
 
-};
+class PersonRepository extends BaseRepository {
 
-// Get All
-const getPersons = async () => {
 
-    return await prisma.person.findMany({
+    constructor() {
 
-        orderBy: {
-            id: "asc"
-        }
+        super(prisma.person);
 
-    });
+    }
 
-};
 
-// Get By ID
-const getPersonById = async (id) => {
 
-    return await prisma.person.findUnique({
+    async getPersons() {
 
-        where: {
-            id: Number(id)
-        }
+        return await this.findAll({
 
-    });
+            orderBy: {
 
-};
+                id: "asc"
 
-// Update
-const updatePerson = async (id, data) => {
+            }
 
-    return await prisma.person.update({
+        });
+
+    }
+
+
+
+    async getPersonById(id) {
+
+        return await this.findById(id);
+
+    }
+
+
+
+    async createPerson(data) {
+
+        return await this.create(data);
+
+    }
+
+
+
+    async updatePerson(id, data) {
+
+        return await this.update(id, data);
+
+    }
+
+
+
+    async deletePerson(id) {
+
+        return await this.delete(id);
+
+    }
+
+// Get Properties Of One Person
+async getPersonProperties(id) {
+
+    return await this.model.findUnique({
 
         where: {
             id: Number(id)
         },
 
-        data
+        include: {
 
-    });
+            ownerships: {
 
-};
+                include: {
 
-// Delete
-const deletePerson = async (id) => {
+                    property: {
 
-    return await prisma.person.delete({
+                        include: {
+                            complex: true
+                        }
 
-        where: {
-            id: Number(id)
+                    }
+
+                }
+
+            }
+
         }
 
     });
 
-};
+}
 
-module.exports = {
+}
 
-    createPerson,
-    getPersons,
-    getPersonById,
-    updatePerson,
-    deletePerson
 
-};
+
+module.exports = new PersonRepository();

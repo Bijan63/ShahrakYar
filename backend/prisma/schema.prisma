@@ -1,3 +1,4 @@
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -7,338 +8,1018 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
-// =====================
-// Users & Persons
-// =====================
-
-model User {
-  id Int @id @default(autoincrement())
-
-  fullName String
-
-  email String @unique
-
-  password String
-
-  role UserRole @default(USER)
-
-  createdAt DateTime @default(now())
-
-  resident Resident?
-
-  personId Int? @unique
-
-  person Person? @relation(fields: [personId], references: [id])
-}
-
-model Person {
-  id Int @id @default(autoincrement())
-
-  firstName String
-
-  lastName String
-
-  nationalId String?
-
-  mobile String
-
-  email String?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  user User?
-
-  ownerships Ownership[]
-
-  residencies Residency[]
-}
-
-// =====================
-// Complex / Building
-// =====================
-
-model Complex {
-  id Int @id @default(autoincrement())
-
-  name String
-
-  address String?
-
-  description String?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  buildings Building[]
-
-  properties Property[]
-}
-
-model Building {
-  id Int @id @default(autoincrement())
-
-  name String
-
-  address String?
-
-  description String?
-
-  complexId Int
-
-  complex Complex @relation(fields: [complexId], references: [id], onDelete: Cascade)
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  units Unit[]
-
-  residents Resident[]
-
-  @@unique([complexId, name])
-}
-
-// =====================
-// Property
-// =====================
-
-model Property {
-  id Int @id @default(autoincrement())
-
-  complexId Int
-
-  complex Complex @relation(fields: [complexId], references: [id], onDelete: Cascade)
-
-  code String @unique
-
-  registryNumber String?
-
-  propertyType PropertyType
-
-  status PropertyStatus
-
-  landArea Float?
-
-  builtArea Float?
-
-  description String?
-
-  createdAt DateTime @default(now())
-
-  updatedAt DateTime @updatedAt
-
-  units Unit[]
-
-  ownerships Ownership[]
-
-  residencies Residency[]
-
-  addresses PropertyAddress[]
-}
-
-// =====================
-// Unit
-// =====================
-
-model Unit {
-  id Int @id @default(autoincrement())
-
-  unitNumber String
-
-  floor Int?
-
-  area Float?
-
-  code String? @unique
-
-  buildingId Int?
-
-  building Building? @relation(fields: [buildingId], references: [id])
-
-  propertyId Int?
-
-  property Property? @relation(fields: [propertyId], references: [id])
-
-  createdAt DateTime @default(now())
-
-  residents Resident[]
-}
-
-// =====================
-// Address
-// =====================
-
-model PropertyAddress {
-  id Int @id @default(autoincrement())
-
-  propertyId Int
-
-  mainStreet String?
-
-  subStreet String?
-
-  alley String?
-
-  number String?
-
-  description String?
-
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-}
-
-// =====================
-// Ownership
-// =====================
-
-model Ownership {
-  id Int @id @default(autoincrement())
-
-  propertyId Int
-
-  personId Int
-
-  percentage Float @default(100)
-
-  startDate DateTime @default(now())
-
-  endDate DateTime?
-
-  property Property @relation(fields: [propertyId], references: [id])
-
-  person Person @relation(fields: [personId], references: [id])
-}
-
-// =====================
-// Residency
-// =====================
-
-model Residency {
-  id Int @id @default(autoincrement())
-
-  propertyId Int
-
-  personId Int
-
-  type ResidencyType
-
-  startDate DateTime @default(now())
-
-  endDate DateTime?
-
-  property Property @relation(fields: [propertyId], references: [id])
-
-  person Person @relation(fields: [personId], references: [id])
-}
-
-// =====================
-// Property Split / Merge
-// =====================
-
-// =====================
-// Resident
-// =====================
-
-model Resident {
-  id Int @id @default(autoincrement())
-
-  fullName String
-
-  mobile String
-
-  residentType ResidentType
-
-  userId Int @unique
-
-  unitId Int
-
-  buildingId Int?
-
-  createdAt DateTime @default(now())
-
-  unit Unit @relation(fields: [unitId], references: [id])
-
-  user User @relation(fields: [userId], references: [id])
-
-  building Building? @relation(fields: [buildingId], references: [id])
-  votes    Vote[]
-}
-
-// =====================
-// Election
-// =====================
-
-model Election {
-  id Int @id @default(autoincrement())
-
-  title String
-
-  description String?
-
-  startDate DateTime
-
-  endDate DateTime
-
-  status String @default("OPEN")
-
-  createdAt DateTime @default(now())
-
-  candidates Candidate[]
-
-  votes Vote[]
-}
-
-// =====================
-// Candidate
-// =====================
-
-model Candidate {
-  id Int @id @default(autoincrement())
-
-  fullName String
-
-  biography String?
-
-  electionId Int
-
-  createdAt DateTime @default(now())
-
-  election Election @relation(fields: [electionId], references: [id])
-
-  votes Vote[]
-}
-
-// =====================
-// Vote
-// =====================
-
-model Vote {
-  id Int @id @default(autoincrement())
-
-  residentId Int
-
-  candidateId Int
-
-  electionId Int
-
-  createdAt DateTime @default(now())
-
-  candidate Candidate @relation(fields: [candidateId], references: [id])
-
-  election Election @relation(fields: [electionId], references: [id])
-
-  resident Resident @relation(fields: [residentId], references: [id])
-
-  @@unique([residentId, electionId, candidateId])
-}
 
 // =====================
 // ENUMS
 // =====================
 
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  BLOCKED
+}
+
+
+enum PersonStatus {
+  ACTIVE
+  INACTIVE
+}
+
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+
+// =====================
+// USER & SECURITY
+// =====================
+
+
+model User {
+
+  id String @id @default(uuid())
+
+
+  username String @unique
+
+  email String? @unique
+
+  password String
+
+
+  status UserStatus @default(ACTIVE)
+
+
+  personId String? @unique
+
+  person Person?
+    @relation(
+      fields: [personId],
+      references: [id]
+    )
+
+
+  roles UserRole[]
+
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+
+  auditLogs AuditLog[]
+
+}
+
+
+
+// =====================
+// ROLES
+// =====================
+
+
+model Role {
+
+  id String @id @default(uuid())
+
+
+  name String @unique
+
+
+  description String?
+
+
+  permissions Permission[]
+
+
+  users UserRole[]
+
+
+}
+
+
+
+// =====================
+// USER ROLE
+// =====================
+
+
+model UserRole {
+
+
+  id String @id @default(uuid())
+
+
+  userId String
+
+  roleId String
+
+
+
+  user User
+    @relation(
+      fields:[userId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+  role Role
+    @relation(
+      fields:[roleId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+  @@unique([
+    userId,
+    roleId
+  ])
+
+}
+
+
+
+// =====================
+// PERMISSION
+// =====================
+
+
+model Permission {
+
+
+  id String @id @default(uuid())
+
+
+  name String @unique
+
+
+  description String?
+
+
+  roles Role[]
+
+
+}
+@@unique([
+ electionId,
+ voterId
+])
+
+
+// =====================
+// PERSON
+// =====================
+
+
+model Person {
+
+
+  id String @id @default(uuid())
+
+
+  firstName String
+
+  lastName String
+
+
+  nationalId String? @unique
+
+
+  mobile String
+
+
+  email String?
+
+
+  gender Gender?
+
+
+  status PersonStatus
+    @default(ACTIVE)
+
+
+
+  user User?
+
+
+
+  ownerships Ownership[]
+
+
+  residencies Residency[]
+
+
+  familyMembers FamilyMember[]
+    @relation("FamilyOwner")
+
+
+  createdAt DateTime @default(now())
+
+
+  updatedAt DateTime @updatedAt
+
+
+
+  auditLogs AuditLog[]
+
+}
+// =====================
+// COMPLEX (شهرک / مجتمع)
+// =====================
+
+model Complex {
+
+  id String @id @default(uuid())
+
+
+  name String
+
+
+  code String @unique
+
+
+  address String?
+
+
+  description String?
+
+
+
+  buildings Building[]
+
+
+  properties Property[]
+
+
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+
+
+  auditLogs AuditLog[]
+
+}
+
+
+
+// =====================
+// BUILDING (ساختمان / بلوک)
+// =====================
+
+model Building {
+
+
+  id String @id @default(uuid())
+
+
+  complexId String
+
+
+  name String
+
+
+  code String
+
+
+
+  description String?
+
+
+
+  complex Complex
+    @relation(
+      fields:[complexId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  properties Property[]
+
+
+
+  createdAt DateTime @default(now())
+
+
+  updatedAt DateTime @updatedAt
+
+
+
+  @@unique([
+    complexId,
+    code
+  ])
+
+}
+
+
+
+// =====================
+// PROPERTY (ملک)
+// =====================
+
+model Property {
+
+
+  id String @id @default(uuid())
+
+
+
+  complexId String
+
+
+
+  buildingId String?
+
+
+
+  code String @unique
+
+
+
+  propertyType PropertyType
+
+
+
+  status PropertyStatus
+
+
+
+  registryNumber String?
+
+
+
+  landArea Float?
+
+
+
+  builtArea Float?
+
+
+
+  description String?
+
+
+
+  complex Complex
+    @relation(
+      fields:[complexId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  building Building?
+    @relation(
+      fields:[buildingId],
+      references:[id],
+      onDelete:SetNull
+    )
+
+
+
+  units Unit[]
+
+
+
+  addresses PropertyAddress[]
+
+
+
+  ownerships Ownership[]
+
+
+
+  residencies Residency[]
+
+
+
+  createdAt DateTime @default(now())
+
+
+  updatedAt DateTime @updatedAt
+
+
+  deletedAt DateTime?
+
+
+
+  auditLogs AuditLog[]
+
+}
+
+
+
+// =====================
+// UNIT (واحد)
+// =====================
+
+model Unit {
+
+
+  id String @id @default(uuid())
+
+
+  propertyId String
+
+
+
+  unitNumber String
+
+
+
+  floor Int?
+
+
+
+  area Float?
+
+
+
+  property Property
+    @relation(
+      fields:[propertyId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  createdAt DateTime @default(now())
+
+
+  updatedAt DateTime @updatedAt
+
+
+
+  @@unique([
+    propertyId,
+    unitNumber
+  ])
+
+}
+
+
+
+// =====================
+// PROPERTY ADDRESS
+// =====================
+
+model PropertyAddress {
+
+
+  id String @id @default(uuid())
+
+
+
+  propertyId String
+
+
+
+  mainStreet String?
+
+
+  subStreet String?
+
+
+  alley String?
+
+
+  number String?
+
+
+
+  postalCode String?
+
+
+
+  description String?
+
+
+
+  property Property
+    @relation(
+      fields:[propertyId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+}
+
+// =====================
+// OWNERSHIP (مالکیت)
+// =====================
+
+model Ownership {
+
+  id String @id @default(uuid())
+
+
+  propertyId String
+
+
+  personId String
+
+
+
+  percentage Float @default(100)
+
+
+
+  startDate DateTime @default(now())
+
+
+  endDate DateTime?
+
+
+
+  property Property
+    @relation(
+      fields:[propertyId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  person Person
+    @relation(
+      fields:[personId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+  @@unique([
+ propertyId,
+ personId,
+ startDate
+])
+
+  createdAt DateTime @default(now())
+
+
+
+  @@index([
+    propertyId
+  ])
+
+
+  @@index([
+    personId
+  ])
+
+}
+
+
+
+// =====================
+// RESIDENCY (سکونت)
+// =====================
+
+model Residency {
+
+
+  id String @id @default(uuid())
+
+
+
+  propertyId String
+
+
+
+  personId String
+
+
+
+  type ResidencyType
+
+
+
+  startDate DateTime @default(now())
+
+
+  endDate DateTime?
+
+
+
+  property Property
+    @relation(
+      fields:[propertyId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  person Person
+    @relation(
+      fields:[personId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  createdAt DateTime @default(now())
+
+
+
+  @@index([
+    propertyId
+  ])
+
+
+  @@index([
+    personId
+  ])
+
+  @@unique([
+ propertyId,
+ personId,
+ startDate
+])
+
+}
+
+
+
+// =====================
+// FAMILY MEMBER
+// =====================
+
+model FamilyMember {
+
+
+  id String @id @default(uuid())
+
+
+
+  personId String
+
+
+
+  familyPersonId String
+
+
+
+  relation FamilyRelation
+
+
+
+  person Person
+    @relation(
+      "FamilyOwner",
+      fields:[personId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  familyPerson Person
+    @relation(
+      "FamilyMember",
+      fields:[familyPersonId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  createdAt DateTime @default(now())
+
+
+
+  @@unique([
+    personId,
+    familyPersonId
+  ])
+
+}
+
+enum ResidencyType {
+
+  OWNER
+
+  TENANT
+
+  FAMILY
+
+}
+
+
+enum FamilyRelation {
+
+  SPOUSE
+
+  CHILD
+
+  PARENT
+
+  OTHER
+
+}
+
+// =====================
+// ELECTION (انتخابات)
+// =====================
+
+model Election {
+
+  id String @id @default(uuid())
+
+
+  title String
+
+
+  description String?
+
+
+
+  startDate DateTime
+
+
+  endDate DateTime
+
+
+
+  status ElectionStatus
+    @default(OPEN)
+
+
+
+  candidates Candidate[]
+
+
+
+  votes Vote[]
+
+
+
+  createdAt DateTime @default(now())
+
+
+  updatedAt DateTime @updatedAt
+
+
+
+  auditLogs AuditLog[]
+
+}
+
+
+
+// =====================
+// CANDIDATE (کاندیدا)
+// =====================
+
+model Candidate {
+
+
+  id String @id @default(uuid())
+
+
+  electionId String
+
+
+
+  personId String
+
+
+
+  biography String?
+
+
+
+  election Election
+    @relation(
+      fields:[electionId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  person Person
+    @relation(
+      fields:[personId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  votes Vote[]
+
+
+
+  createdAt DateTime @default(now())
+
+
+
+  @@unique([
+    electionId,
+    personId
+  ])
+
+  @@unique([
+ electionId,
+ personId
+])
+
+}
+
+
+
+// =====================
+// VOTE (رأی)
+// =====================
+
+model Vote {
+
+
+  id String @id @default(uuid())
+
+
+
+  electionId String
+
+
+
+  voterId String
+
+
+
+  candidateId String
+
+
+
+  election Election
+    @relation(
+      fields:[electionId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  voter Person
+    @relation(
+      fields:[voterId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  candidate Candidate
+    @relation(
+      fields:[candidateId],
+      references:[id],
+      onDelete:Cascade
+    )
+
+
+
+  createdAt DateTime @default(now())
+
+
+
+  @@unique([
+    electionId,
+    voterId
+  ])
+
+
+  @@index([
+    candidateId
+  ])
+
+  @@unique([
+ electionId,
+ voterId
+])
+@@index([
+ candidateId
+])
+
+}
+
+
+
+// =====================
+// AUDIT LOG
+// ثبت تاریخچه تغییرات
+// =====================
+
+model AuditLog {
+
+
+  id String @id @default(uuid())
+
+
+  action String
+
+
+
+  entity String
+
+
+
+  entityId String
+
+
+
+  userId String?
+
+
+
+  personId String?
+
+
+
+  description String?
+
+
+
+  createdAt DateTime @default(now())
+
+
+
+  user User?
+    @relation(
+      fields:[userId],
+      references:[id]
+    )
+
+
+  person Person?
+    @relation(
+      fields:[personId],
+      references:[id]
+    )
+
+}
+
+// =====================
+// USER
+// =====================
+
+enum UserStatus {
+
+  ACTIVE
+
+  INACTIVE
+
+  BLOCKED
+
+}
+
+
+// =====================
+// PERSON
+// =====================
+
+enum PersonStatus {
+
+  ACTIVE
+
+  INACTIVE
+
+}
+
+
+enum Gender {
+
+  MALE
+
+  FEMALE
+
+  OTHER
+
+
+@@index([
+ mobile
+])
+
+}
+
+
+// =====================
+// PROPERTY
+// =====================
+
 enum PropertyType {
+
   LAND
 
   VILLA
@@ -346,9 +1027,12 @@ enum PropertyType {
   APARTMENT
 
   COMMERCIAL
+
 }
 
+
 enum PropertyStatus {
+
   VACANT
 
   BUILT
@@ -356,34 +1040,88 @@ enum PropertyStatus {
   UNDER_CONSTRUCTION
 
   INACTIVE
+
+@@index([
+ complexId
+])
+
+
+@@index([
+ buildingId
+])
+
+
+@@index([
+ propertyType
+])
+
 }
 
-enum PropertyRelationType {
-  SPLIT
 
-  MERGE
 
-  REPLACED
-}
+// =====================
+// RESIDENCY
+// =====================
 
 enum ResidencyType {
+
   OWNER
 
   TENANT
 
   FAMILY
+
+@@index([
+ personId
+])
+
+
+@@index([
+ propertyId
+])
+
 }
 
-enum UserRole {
-  ADMIN
 
-  MANAGER
 
-  USER
+// =====================
+// FAMILY
+// =====================
+
+enum FamilyRelation {
+
+  SPOUSE
+
+  CHILD
+
+  PARENT
+
+  OTHER
+
+
+
+@@index([
+ personId
+])
+
+
+@@index([
+ propertyId
+])
+
 }
+// =====================
+// ELECTION
+// =====================
 
-enum ResidentType {
-  OWNER
+enum ElectionStatus {
 
-  TENANT
+  DRAFT
+
+  OPEN
+
+  CLOSED
+
+  CANCELLED
+
 }

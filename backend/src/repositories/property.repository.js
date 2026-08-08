@@ -1,92 +1,149 @@
 const prisma = require("../config/prisma");
 
-
-// Create Property
-const createProperty = async (data) => {
-    return await prisma.property.create({
-        data,
-        include: {
-            complex: true
-        }
-    });
-};
+const BaseRepository = require("../core/BaseRepository");
 
 
-// Get All Properties
-const getProperties = async () => {
-    return await prisma.property.findMany({
-        include: {
-            complex: true,
-            ownerships: {
-                include: {
-                    person: true
+class PropertyRepository extends BaseRepository {
+
+
+    constructor() {
+
+        super(prisma.property);
+
+    }
+
+
+
+    // Create Property
+    async createProperty(data) {
+
+        return await this.create(data);
+
+    }
+
+
+
+
+    // Get All Properties
+    async getProperties() {
+
+        return await this.findAll({
+
+            include: {
+
+                complex: true,
+
+                ownerships: {
+
+                    include: {
+
+                        person: true
+
+                    }
+
+                },
+
+                residencies: {
+
+                    include: {
+
+                        person: true
+
+                    }
+
                 }
+
             },
-            residencies: {
-                include: {
-                    person: true
-                }
+
+            orderBy: {
+
+                id: "asc"
+
             }
-        },
-        orderBy: {
-            id: "asc"
-        }
-    });
-};
+
+        });
+
+    }
 
 
-// Get Property By ID
-const getPropertyById = async (id) => {
 
-    return await prisma.property.findUnique({
-        where: {
-            id: Number(id)
-        },
-        include: {
-            complex: true,
-            ownerships: {
-                include: {
-                    person: true
+    // Get Property By ID
+    async getPropertyById(id) {
+
+        return await this.findById(id, {
+
+            include: {
+
+                complex: true,
+
+                ownerships: {
+
+                    include: {
+
+                        person: true
+
+                    }
+
+                },
+
+                residencies: {
+
+                    include: {
+
+                        person: true
+
+                    }
+
                 }
-            },
-            residencies: {
-                include: {
-                    person: true
-                }
+
             }
-        }
-    });
 
-};
+        });
 
-
-// Update Property
-const updateProperty = async (id, data) => {
-
-    return await prisma.property.update({
-        where:{
-            id:Number(id)
-        },
-        data
-    });
-
-};
+    }
 
 
-// Delete Property
-const deleteProperty = async (id) => {
 
-    return await prisma.property.delete({
-        where:{
-            id:Number(id)
-        }
-    });
+    // Update Property
+    async updateProperty(id, data) {
 
-};
-// Search Properties
-const searchProperties = async (q) => {
+        return await this.update(
+            id,
+            data
+        );
 
-    return await prisma.property.findMany({
+    }
+
+
+
+    // Delete Property
+    async deleteProperty(id) {
+
+        return await this.delete(id);
+
+    }
+
+
+
+    // Search Properties
+async searchProperties(q) {
+
+    const propertyTypes = [
+        "LAND",
+        "VILLA",
+        "APARTMENT",
+        "COMMERCIAL"
+    ];
+
+
+    const searchPropertyType =
+        propertyTypes.includes(q.toUpperCase())
+            ? q.toUpperCase()
+            : null;
+
+
+
+    return await this.model.findMany({
 
         where: {
 
@@ -99,6 +156,7 @@ const searchProperties = async (q) => {
                     }
                 },
 
+
                 {
                     description: {
                         contains: q,
@@ -106,86 +164,188 @@ const searchProperties = async (q) => {
                     }
                 },
 
-                {
-                    propertyType: {
-                        equals: q.toUpperCase()
-                    }
-                },
+
+                ...(searchPropertyType
+                    ? [
+                        {
+                            propertyType: {
+                                equals: searchPropertyType
+                            }
+                        }
+                    ]
+                    : []
+                ),
+
 
                 {
                     complex: {
+
                         name: {
+
                             contains: q,
+
                             mode: "insensitive"
+
                         }
+
                     }
+
                 },
+
 
                 {
                     ownerships: {
+
                         some: {
+
                             person: {
+
                                 OR: [
 
                                     {
                                         firstName: {
+
                                             contains: q,
+
                                             mode: "insensitive"
+
                                         }
                                     },
+
 
                                     {
                                         lastName: {
+
                                             contains: q,
+
                                             mode: "insensitive"
+
                                         }
                                     },
 
+
                                     {
                                         mobile: {
+
                                             contains: q
+
                                         }
                                     }
 
                                 ]
+
                             }
+
                         }
+
                     }
+
                 }
 
             ]
 
         },
 
+
         include: {
 
             complex: true,
 
+
             ownerships: {
+
                 include: {
+
                     person: true
+
                 }
+
             },
 
+
             residencies: {
+
                 include: {
+
                     person: true
+
                 }
+
             }
 
         }
 
     });
 
-};
 
-module.exports = {
+}
+// Get Property Full Detail
+async getPropertyDetail(id) {
 
-    createProperty,
-    getProperties,
-    getPropertyById,
-    updateProperty,
-    deleteProperty,
-    searchProperties
+    return await this.model.findUnique({
 
-};
+        where: {
+            id: Number(id)
+        },
+
+        include: {
+
+            complex: true,
+
+
+            ownerships: {
+
+                include: {
+
+                    person: true
+
+                }
+
+            },
+
+
+            residencies: {
+
+                include: {
+
+                    person: true
+
+                }
+
+            }
+
+        }
+
+    });
+
+}
+
+// Get Owners Of One Property
+async getPropertyOwners(id) {
+
+    return await this.model.findUnique({
+
+        where: {
+            id: Number(id)
+        },
+
+        include: {
+
+            ownerships: {
+
+                include: {
+
+                    person: true
+
+                }
+
+            }
+
+        }
+
+    });
+
+}
+
+}
+module.exports = new PropertyRepository();

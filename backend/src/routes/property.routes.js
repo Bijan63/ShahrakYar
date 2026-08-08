@@ -19,6 +19,23 @@ router.get(
 );
 
 
+// Search Properties
+router.get(
+    "/search",
+    propertyController.searchProperties
+);
+
+// Get Property Full Detail
+router.get(
+    "/detail/:id",
+    propertyController.getPropertyDetail
+);
+
+router.get(
+    "/:id/owners",
+    propertyController.getPropertyOwners
+);
+
 // Get Property By ID
 router.get(
     "/:id",

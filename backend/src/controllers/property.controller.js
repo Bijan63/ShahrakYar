@@ -1,5 +1,7 @@
 const propertyService = require("../services/property.service");
-const propertyDTO = require("../dto/property.dto");
+const {
+    propertyMapper
+} = require("../mappers/property.mapper");
 const ResponseHelper = require("../helpers/response.helper");
 
 // Create Property
@@ -31,11 +33,16 @@ const getProperties = async (req, res, next) => {
 
     try {
 
-       ResponseHelper.success(
-    res,
-    "Properties fetched successfully",
-    properties.map(propertyDTO)
-);
+        const properties = await propertyService.getProperties();
+
+
+        ResponseHelper.success(
+            res,
+            "Properties fetched successfully",
+            properties.map(propertyMapper)
+        );
+
+
     } catch (error) {
 
         next(error);
@@ -115,7 +122,80 @@ const deleteProperty = async (req, res, next) => {
     }
 
 };
+// Search Properties
+const searchProperties = async (req, res, next) => {
 
+    try {
+
+         console.log("SEARCH CONTROLLER:", req.query.q);
+
+        const properties = await propertyService.searchProperties(
+            req.query.q
+        );
+
+
+        ResponseHelper.success(
+            res,
+            "Properties searched successfully",
+            properties.map(propertyMapper)
+        );
+
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+// Get Property Full Detail
+const getPropertyDetail = async (req, res, next) => {
+
+    try {
+
+        const property =
+            await propertyService.getPropertyDetail(
+                req.params.id
+            );
+
+
+        ResponseHelper.success(
+            res,
+            "Property detail fetched successfully",
+            propertyMapper(property)
+        );
+
+
+    } catch(error) {
+
+        next(error);
+
+    }
+
+};
+
+const getPropertyOwners = async (req, res, next) => {
+
+    try {
+
+        const property =
+            await propertyService.getPropertyOwners(
+                req.params.id
+            );
+
+        ResponseHelper.success(
+            res,
+            "Property owners fetched successfully",
+            property
+        );
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
 
 module.exports = {
 
@@ -123,6 +203,8 @@ module.exports = {
     getProperties,
     getPropertyById,
     updateProperty,
-    deleteProperty
-
+    deleteProperty,
+    searchProperties,
+    getPropertyDetail,
+    getPropertyOwners
 };

@@ -35,12 +35,21 @@ const deletePerson = async (id) => {
 
 };
 
+const getPersonProperties = async (id) => {
+
+    return await personRepository.getPersonProperties(id);
+
+};
+
 module.exports = {
 
     createPerson,
     getPersons,
     getPersonById,
     updatePerson,
-    deletePerson
+    deletePerson,
+    
+
+    getPersonProperties
 
 };

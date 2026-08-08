@@ -1,4 +1,5 @@
 const swaggerJSDoc = require("swagger-jsdoc");
+const path = require("path");
 
 const options = {
     definition: {
@@ -6,9 +7,7 @@ const options = {
 
         info: {
             title: "ShahrakYar API",
-
             version: "1.0.0",
-
             description: "REST API for ShahrakYar Management System"
         },
 
@@ -22,9 +21,7 @@ const options = {
             securitySchemes: {
                 bearerAuth: {
                     type: "http",
-
                     scheme: "bearer",
-
                     bearerFormat: "JWT"
                 }
             }
@@ -37,7 +34,9 @@ const options = {
         ]
     },
 
-    apis: ["./src/routes/*.js"]
+    apis: [
+        path.join(__dirname, "../routes/*.js")
+    ]
 };
 
 module.exports = swaggerJSDoc(options);

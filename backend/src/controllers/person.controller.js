@@ -1,5 +1,9 @@
 const personService = require("../services/person.service");
-
+const ResponseHelper = require("../helpers/response.helper");
+const {
+    personMapper,
+    personPropertiesMapper
+} = require("../mappers/person.mapper");
 // Create Person
 const createPerson = async (req, res, next) => {
 
@@ -11,7 +15,7 @@ const createPerson = async (req, res, next) => {
 
         res.status(201).json({
             success: true,
-            person
+            person: personMapper(person)
         });
 
     } catch (error) {
@@ -30,9 +34,13 @@ const getPersons = async (req, res, next) => {
         const persons = await personService.getPersons();
 
         res.json({
-            success: true,
-            persons
-        });
+
+    success:true,
+
+    persons:
+        persons.map(personMapper)
+
+});
 
     } catch (error) {
 
@@ -51,10 +59,15 @@ const getPersonById = async (req, res, next) => {
             req.params.id
         );
 
+
         res.json({
+
             success: true,
-            person
+
+            person: personMapper(person)
+
         });
+
 
     } catch (error) {
 
@@ -76,7 +89,7 @@ const updatePerson = async (req, res, next) => {
 
         res.json({
             success: true,
-            person
+            person: personMapper(person)
         });
 
     } catch (error) {
@@ -109,12 +122,38 @@ const deletePerson = async (req, res, next) => {
 
 };
 
+// Get Properties Of One Person
+const getPersonProperties = async (req, res, next) => {
+
+    try {
+
+        const person =
+            await personService.getPersonProperties(
+                req.params.id
+            );
+
+        ResponseHelper.success(
+            res,
+            "Person properties fetched successfully",
+            personPropertiesMapper(person)
+        );
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
 module.exports = {
 
     createPerson,
     getPersons,
     getPersonById,
     updatePerson,
-    deletePerson
+    deletePerson,
+
+    getPersonProperties
 
 };

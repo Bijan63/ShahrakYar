@@ -11,6 +11,10 @@ router.post("/", personController.createPerson);
 router.get("/", personController.getPersons);
 
 // Get By ID
+router.get(
+    "/:id/properties",
+    personController.getPersonProperties
+);
 router.get("/:id", personController.getPersonById);
 
 // Update

@@ -28,12 +28,9 @@ const app = express();
 app.disable("x-powered-by");
 
 app.use(express.json());
-app.use(
-    express.static(
-        path.join(__dirname, "../public")
-    )
-);
+
 app.use(express.static(path.join(__dirname, "../public")));
+
 // ========================================
 // Swagger Documentation
 // ========================================
@@ -87,7 +84,7 @@ app.get("/", (req, res) => {
         status: "Running 🚀"
     });
 });
-app.use("/api/properties", propertyRoutes);
+
 app.use("/api/complexes", complexRoutes);
 app.use("/api/dashboard", dashboardRoutes);
 
