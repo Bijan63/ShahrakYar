@@ -36,6 +36,12 @@ router.get(
     propertyController.getPropertyOwners
 );
 
+// Get Property Residents
+router.get(
+    "/:id/residents",
+    propertyController.getPropertyResidents
+);
+
 // Get Property By ID
 router.get(
     "/:id",

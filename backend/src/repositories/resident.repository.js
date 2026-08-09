@@ -39,6 +39,20 @@ class ResidentRepository {
         });
     }
 
+    async findByPersonId(personId) {
+
+    return prisma.resident.findUnique({
+
+        where: {
+
+            personId
+
+        }
+
+    });
+
+}
+
     async findAll(skip = 0, take = 20) {
         return prisma.resident.findMany({
             skip,

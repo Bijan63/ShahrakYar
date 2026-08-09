@@ -3,7 +3,7 @@ const {
     propertyMapper
 } = require("../mappers/property.mapper");
 const ResponseHelper = require("../helpers/response.helper");
-
+const propertyDTO = require("../dto/property.dto");
 // Create Property
 const createProperty = async (req, res, next) => {
 
@@ -174,6 +174,7 @@ const getPropertyDetail = async (req, res, next) => {
 
 };
 
+// Get Property Owners
 const getPropertyOwners = async (req, res, next) => {
 
     try {
@@ -186,7 +187,31 @@ const getPropertyOwners = async (req, res, next) => {
         ResponseHelper.success(
             res,
             "Property owners fetched successfully",
-            property
+            propertyMapper(property)
+        );
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
+// Get Property Residents
+const getPropertyResidents = async (req, res, next) => {
+
+    try {
+
+        const property =
+            await propertyService.getPropertyResidents(
+                req.params.id
+            );
+
+        ResponseHelper.success(
+            res,
+            "Property residents fetched successfully",
+            propertyMapper(property)
         );
 
     } catch (error) {
@@ -206,5 +231,6 @@ module.exports = {
     deleteProperty,
     searchProperties,
     getPropertyDetail,
-    getPropertyOwners
+    getPropertyOwners,
+    getPropertyResidents
 };

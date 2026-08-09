@@ -29,6 +29,13 @@ const userController = require("../controllers/user.controller");
  */
 router.get("/", verifyToken, authorize("ADMIN"), userController.getUsers);
 
+router.post(
+    "/",
+    verifyToken,
+    authorize("ADMIN"),
+    userController.createUser
+);
+
 /**
  * @swagger
  * /api/users/profile:

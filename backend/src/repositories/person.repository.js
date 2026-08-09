@@ -2,9 +2,7 @@ const prisma = require("../config/prisma");
 
 const BaseRepository = require("../core/BaseRepository");
 
-
 class PersonRepository extends BaseRepository {
-
 
     constructor() {
 
@@ -13,6 +11,9 @@ class PersonRepository extends BaseRepository {
     }
 
 
+    // =========================
+    // Get All Persons
+    // =========================
 
     async getPersons() {
 
@@ -29,6 +30,9 @@ class PersonRepository extends BaseRepository {
     }
 
 
+    // =========================
+    // Get Person By ID
+    // =========================
 
     async getPersonById(id) {
 
@@ -37,6 +41,9 @@ class PersonRepository extends BaseRepository {
     }
 
 
+    // =========================
+    // Create Person
+    // =========================
 
     async createPerson(data) {
 
@@ -45,14 +52,23 @@ class PersonRepository extends BaseRepository {
     }
 
 
+    // =========================
+    // Update Person
+    // =========================
 
     async updatePerson(id, data) {
 
-        return await this.update(id, data);
+        return await this.update(
+            id,
+            data
+        );
 
     }
 
 
+    // =========================
+    // Delete Person
+    // =========================
 
     async deletePerson(id) {
 
@@ -60,25 +76,35 @@ class PersonRepository extends BaseRepository {
 
     }
 
-// Get Properties Of One Person
-async getPersonProperties(id) {
 
-    return await this.model.findUnique({
+    // =========================
+    // Get Properties Of One Person
+    // =========================
 
-        where: {
-            id: Number(id)
-        },
+    async getPersonProperties(id) {
 
-        include: {
+        return await this.model.findUnique({
 
-            ownerships: {
+            where: {
 
-                include: {
+                id
 
-                    property: {
+            },
 
-                        include: {
-                            complex: true
+            include: {
+
+                ownerships: {
+
+                    include: {
+
+                        property: {
+
+                            include: {
+
+                                complex: true
+
+                            }
+
                         }
 
                     }
@@ -87,14 +113,52 @@ async getPersonProperties(id) {
 
             }
 
-        }
+        });
 
-    });
+    }
+
+
+    // =========================
+    // Get Residencies Of One Person
+    // =========================
+
+    async getPersonResidencies(id) {
+
+        return await this.model.findUnique({
+
+            where: {
+
+                id
+
+            },
+
+            include: {
+
+                residencies: {
+
+                    include: {
+
+                        property: {
+
+                            include: {
+
+                                complex: true
+
+                            }
+
+                        }
+
+                    }
+
+                }
+
+            }
+
+        });
+
+    }
 
 }
-
-}
-
 
 
 module.exports = new PersonRepository();

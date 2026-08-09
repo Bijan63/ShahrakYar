@@ -1,28 +1,40 @@
 const residencyRepository = require("../repositories/residency.repository");
 const residencyMapper = require("../mappers/residency.mapper");
 
-// Create
+// =====================
+// Create Residency
+// =====================
+
 const createResidency = async (data) => {
 
-    const residency = await residencyRepository.createResidency(data);
+    const residency =
+        await residencyRepository.createResidency(data);
 
     return residencyMapper.toResponse(residency);
 
 };
 
-// Get All
+// =====================
+// Get All Residencies
+// =====================
+
 const getResidencies = async () => {
 
-    const residencies = await residencyRepository.getResidencies();
+    const residencies =
+        await residencyRepository.getResidencies();
 
     return residencies.map(residencyMapper.toResponse);
 
 };
 
-// Get By Id
+// =====================
+// Get Residency By ID
+// =====================
+
 const getResidencyById = async (id) => {
 
-    const residency = await residencyRepository.getResidencyById(id);
+    const residency =
+        await residencyRepository.getResidencyById(id);
 
     if (!residency) {
         return null;
@@ -32,38 +44,59 @@ const getResidencyById = async (id) => {
 
 };
 
-// Update
+// =====================
+// Update Residency
+// =====================
+
 const updateResidency = async (id, data) => {
 
-    const residency = await residencyRepository.updateResidency(
-        id,
-        data
-    );
+    const residency =
+        await residencyRepository.updateResidency(
+            id,
+            data
+        );
 
     return residencyMapper.toResponse(residency);
 
 };
 
-// Delete
+// =====================
+// Delete Residency
+// =====================
+
 const deleteResidency = async (id) => {
 
     return await residencyRepository.deleteResidency(id);
 
 };
+
+// =====================
+// Get Residents By Property
+// =====================
+
 const getResidentsByProperty = async (propertyId) => {
 
     const residencies =
-        await residencyRepository.getResidentsByProperty(propertyId);
+        await residencyRepository.getResidentsByProperty(
+            propertyId
+        );
 
     return residencies.map(residencyMapper.toResponse);
 
 };
 
 module.exports = {
+
     createResidency,
+
     getResidencies,
+
     getResidencyById,
+
     updateResidency,
+
     deleteResidency,
+
     getResidentsByProperty
+
 };

@@ -1,116 +1,182 @@
+
 const express = require("express");
 
 const router = express.Router();
 
-const residencyController = require("../controllers/residency.controller");
+const residentController = require("../controllers/resident.controller");
 
+const verifyToken = require("../middleware/auth.middleware");
+
+// ======================================================
+// RESIDENT ROUTES
+// ======================================================
 
 /**
  * @swagger
  * tags:
- *   name: Residencies
- *   description: Property residency management
+ *   name: Residents
+ *   description: Resident Management
  */
 
+// ======================================================
+// Create Resident
+// ======================================================
 
 /**
  * @swagger
- * /api/residencies:
+ * /api/residents:
  *   post:
- *     summary: Create residency
- *     tags: [Residencies]
+ *     summary: Create resident
+ *     tags: [Residents]
  *     security:
  *       - bearerAuth: []
- *     requestBody:
- *       required: true
- *       content:
- *         application/json:
- *           schema:
- *             type: object
- *             required:
- *               - propertyId
- *               - personId
- *               - type
- *             properties:
- *               propertyId:
- *                 type: integer
- *                 example: 1
- *               personId:
- *                 type: integer
- *                 example: 1
- *               type:
- *                 type: string
- *                 example: OWNER
- *     responses:
- *       201:
- *         description: Residency created
  */
-router.post("/", residencyController.createResidency);
+router.post(
+    "/",
+    verifyToken,
+    residentController.createResident
+);
 
-
+// ======================================================
+// Get All Residents
+// ======================================================
 
 /**
  * @swagger
- * /api/residencies:
+ * /api/residents:
  *   get:
- *     summary: Get all residencies
- *     tags: [Residencies]
+ *     summary: Get all residents
+ *     tags: [Residents]
  *     security:
  *       - bearerAuth: []
- *     responses:
- *       200:
- *         description: Residency list
  */
-router.get("/", residencyController.getResidencies);
+router.get(
+    "/",
+    verifyToken,
+    residentController.getResidents
+);
 
-
+// ======================================================
+// Search Residents
+// ======================================================
 
 /**
  * @swagger
- * /api/residencies/{id}:
+ * /api/residents/search:
  *   get:
- *     summary: Get residency by id
- *     tags: [Residencies]
+ *     summary: Search residents
+ *     tags: [Residents]
  *     security:
  *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: integer
- *     responses:
- *       200:
- *         description: Residency found
  */
-router.get("/:id", residencyController.getResidencyById);
+router.get(
+    "/search",
+    verifyToken,
+    residentController.searchResidents
+);
 
-
+// ======================================================
+// Get Resident By ID
+// ======================================================
 
 /**
  * @swagger
- * /api/residencies/{id}:
+ * /api/residents/{id}:
+ *   get:
+ *     summary: Get resident by id
+ *     tags: [Residents]
+ *     security:
+ *       - bearerAuth: []
+ */
+router.get(
+    "/:id",
+    verifyToken,
+    residentController.getResident
+);
+
+// ======================================================
+// Update Resident
+// ======================================================
+
+/**
+ * @swagger
+ * /api/residents/{id}:
  *   put:
- *     summary: Update residency
- *     tags: [Residencies]
+ *     summary: Update resident
+ *     tags: [Residents]
  *     security:
  *       - bearerAuth: []
  */
-router.put("/:id", residencyController.updateResidency);
+router.put(
+    "/:id",
+    verifyToken,
+    residentController.updateResident
+);
 
-
+// ======================================================
+// Delete Resident
+// ======================================================
 
 /**
  * @swagger
- * /api/residencies/{id}:
+ * /api/residents/{id}:
  *   delete:
- *     summary: Delete residency
- *     tags: [Residencies]
+ *     summary: Delete resident
+ *     tags: [Residents]
  *     security:
  *       - bearerAuth: []
  */
-router.delete("/:id", residencyController.deleteResidency);
+router.delete(
+    "/:id",
+    verifyToken,
+    residentController.deleteResident
+);
+/**
+ * @swagger
+ * /api/residents/{id}:
+ * patch:
+ *   summary: Update resident
+ *   tags: [Residents]
+ *   security:
+ *     - bearerAuth: []
+ *   parameters:
+ *     - in: path
+ *       name: id
+ *       required: true
+ *       schema:
+ *         type: string
+ *         format: uuid
+ *   requestBody:
+ *     required: true
+ *     content:
+ *       application/json:
+ *         schema:
+ *           type: object
+ *           properties:
+ *             fullName:
+ *               type: string
+ *             mobile:
+ *               type: string
+ *             residentType:
+ *               type: string
+ *             userId:
+ *               type: string
+ *               format: uuid
+ *             unitId:
+ *               type: string
+ *               format: uuid
+ *             personId:
+ *               type: string
+ *               format: uuid
+ *   responses:
+ *     200:
+ *       description: Resident updated successfully
+ */
 
-
+router.patch(
+    "/:id",
+    verifyToken,
+    residentController.updateResident
+);
 
 module.exports = router;

@@ -1,6 +1,5 @@
 class BaseRepository {
 
-
     constructor(model) {
 
         this.model = model;
@@ -8,7 +7,7 @@ class BaseRepository {
     }
 
 
-
+    // Create
     async create(data) {
 
         return await this.model.create({
@@ -20,7 +19,7 @@ class BaseRepository {
     }
 
 
-
+    // Find All
     async findAll(options = {}) {
 
         return await this.model.findMany({
@@ -32,14 +31,14 @@ class BaseRepository {
     }
 
 
-
+    // Find By ID
     async findById(id, options = {}) {
 
         return await this.model.findUnique({
 
             where: {
 
-                id: Number(id)
+                id
 
             },
 
@@ -50,14 +49,14 @@ class BaseRepository {
     }
 
 
-
+    // Update
     async update(id, data) {
 
         return await this.model.update({
 
             where: {
 
-                id: Number(id)
+                id
 
             },
 
@@ -68,21 +67,20 @@ class BaseRepository {
     }
 
 
-
+    // Delete
     async delete(id) {
 
         return await this.model.delete({
 
             where: {
 
-                id: Number(id)
+                id
 
             }
 
         });
 
     }
-
 
 }
 

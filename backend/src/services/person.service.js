@@ -1,39 +1,68 @@
+
 const personRepository = require("../repositories/person.repository");
 
-// Create
+
+// =========================
+// Create Person
+// =========================
+
 const createPerson = async (data) => {
 
     return await personRepository.createPerson(data);
 
 };
 
-// Get All
+
+// =========================
+// Get All Persons
+// =========================
+
 const getPersons = async () => {
 
     return await personRepository.getPersons();
 
 };
 
-// Get By ID
+
+// =========================
+// Get Person By ID
+// =========================
+
 const getPersonById = async (id) => {
 
     return await personRepository.getPersonById(id);
 
 };
 
-// Update
+
+// =========================
+// Update Person
+// =========================
+
 const updatePerson = async (id, data) => {
 
-    return await personRepository.updatePerson(id, data);
+    return await personRepository.updatePerson(
+        id,
+        data
+    );
 
 };
 
-// Delete
+
+// =========================
+// Delete Person
+// =========================
+
 const deletePerson = async (id) => {
 
     return await personRepository.deletePerson(id);
 
 };
+
+
+// =========================
+// Get Properties Of Person
+// =========================
 
 const getPersonProperties = async (id) => {
 
@@ -41,15 +70,36 @@ const getPersonProperties = async (id) => {
 
 };
 
+
+// =========================
+// Get Residencies Of Person
+// =========================
+
+const getPersonResidencies = async (id) => {
+
+    return await personRepository.getPersonResidencies(id);
+
+};
+
+
+// =========================
+// Export
+// =========================
+
 module.exports = {
 
     createPerson,
-    getPersons,
-    getPersonById,
-    updatePerson,
-    deletePerson,
-    
 
-    getPersonProperties
+    getPersons,
+
+    getPersonById,
+
+    updatePerson,
+
+    deletePerson,
+
+    getPersonProperties,
+
+    getPersonResidencies
 
 };

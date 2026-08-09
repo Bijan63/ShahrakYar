@@ -5,6 +5,9 @@ const complexRepository = require("../repositories/complex.repository");
 
 class ComplexService {
 
+    // =====================
+    // Create Complex
+    // =====================
 
     async createComplex(data) {
 
@@ -38,6 +41,9 @@ class ComplexService {
     }
 
 
+    // =====================
+    // Get All Complexes
+    // =====================
 
     async getComplexes() {
 
@@ -46,13 +52,14 @@ class ComplexService {
     }
 
 
+    // =====================
+    // Get Complex By ID
+    // =====================
 
     async getComplexById(id) {
 
-
-        const complex = await complexRepository.findById(
-            Number(id)
-        );
+        const complex =
+            await complexRepository.findById(id);
 
 
         if (!complex) {
@@ -70,14 +77,14 @@ class ComplexService {
     }
 
 
+    // =====================
+    // Update Complex
+    // =====================
 
     async updateComplex(id, data) {
 
-
         const complex =
-            await complexRepository.findById(
-                Number(id)
-            );
+            await complexRepository.findById(id);
 
 
         if (!complex) {
@@ -91,21 +98,21 @@ class ComplexService {
 
 
         return complexRepository.update(
-            Number(id),
+            id,
             data
         );
 
     }
 
 
+    // =====================
+    // Delete Complex
+    // =====================
 
     async deleteComplex(id) {
 
-
         const complex =
-            await complexRepository.findById(
-                Number(id)
-            );
+            await complexRepository.findById(id);
 
 
         if (!complex) {
@@ -118,12 +125,9 @@ class ComplexService {
         }
 
 
-        return complexRepository.delete(
-            Number(id)
-        );
+        return complexRepository.delete(id);
 
     }
-
 
 }
 

@@ -14,6 +14,8 @@ const residentDTO = (resident) => {
 
         unitId: resident.unitId,
 
+        personId: resident.personId,
+
         createdAt: resident.createdAt,
 
         updatedAt: resident.updatedAt
@@ -21,6 +23,5 @@ const residentDTO = (resident) => {
     };
 
 };
-
 
 module.exports = residentDTO;

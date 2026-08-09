@@ -1,95 +1,150 @@
+
 const prisma = require("../config/prisma");
 
+// =====================
+// Residency Include
+// =====================
+
+const residencyInclude = {
+
+    property: {
+        include: {
+            complex: true
+        }
+    },
+
+    person: true
+
+};
+
+// =====================
 // Create Residency
+// =====================
+
 const createResidency = async (data) => {
 
     return await prisma.residency.create({
 
         data: {
-            propertyId: Number(data.propertyId),
-            personId: Number(data.personId),
+
+            propertyId: data.propertyId,
+
+            personId: data.personId,
+
             type: data.type,
+
             startDate: data.startDate,
+
             endDate: data.endDate
+
         },
 
-        include: {
-            property: true,
-            person: true
-        }
+        include: residencyInclude
+
     });
+
 };
 
+// =====================
 // Get All Residencies
+// =====================
+
 const getResidencies = async () => {
 
     return await prisma.residency.findMany({
-        include: {
-            property: true,
-            person: true
+
+        include: residencyInclude,
+
+        orderBy: {
+
+            id: "asc"
+
         }
+
     });
 
 };
 
+// =====================
 // Get Residency By ID
+// =====================
+
 const getResidencyById = async (id) => {
 
     return await prisma.residency.findUnique({
+
         where: {
-            id: Number(id)
+
+            id
+
         },
-        include: {
-            property: true,
-            person: true
-        }
+
+        include: residencyInclude
+
     });
 
 };
 
+// =====================
 // Update Residency
+// =====================
+
 const updateResidency = async (id, data) => {
 
     return await prisma.residency.update({
+
         where: {
-            id: Number(id)
+
+            id
+
         },
+
         data,
-        include: {
-            property: true,
-            person: true
-        }
+
+        include: residencyInclude
+
     });
 
 };
 
+// =====================
 // Delete Residency
+// =====================
+
 const deleteResidency = async (id) => {
 
     return await prisma.residency.delete({
+
         where: {
-            id: Number(id)
+
+            id
+
         }
+
     });
 
 };
 
+// =====================
 // Get Residents By Property
+// =====================
+
 const getResidentsByProperty = async (propertyId) => {
 
     return await prisma.residency.findMany({
 
         where: {
-            propertyId: Number(propertyId)
+
+            propertyId
+
         },
 
-        include: {
-            property: true,
-            person: true
-        },
+        include: residencyInclude,
 
         orderBy: {
+
             id: "asc"
+
         }
 
     });
@@ -97,10 +152,17 @@ const getResidentsByProperty = async (propertyId) => {
 };
 
 module.exports = {
+
     createResidency,
+
     getResidencies,
+
     getResidencyById,
+
     updateResidency,
+
     deleteResidency,
+
     getResidentsByProperty
+
 };

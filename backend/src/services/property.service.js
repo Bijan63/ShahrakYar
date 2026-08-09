@@ -63,14 +63,33 @@ const getPropertyOwners = async (id) => {
 
 };
 
+
+// Get Property Residents
+const getPropertyResidents = async (id) => {
+
+    return await propertyRepository.getPropertyResidents(id);
+
+};
+
+
 module.exports = {
 
     createProperty,
+
     getProperties,
+
     getPropertyById,
+
     updateProperty,
+
     deleteProperty,
+
     searchProperties,
+
     getPropertyDetail,
-    getPropertyOwners
+
+    getPropertyOwners,
+
+    getPropertyResidents
+
 };

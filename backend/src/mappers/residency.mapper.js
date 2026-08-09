@@ -1,3 +1,4 @@
+
 const toResponse = (residency) => {
 
     if (!residency) {
@@ -18,7 +19,16 @@ const toResponse = (residency) => {
                 id: residency.property.id,
                 code: residency.property.code,
                 type: residency.property.propertyType,
-                status: residency.property.status
+                status: residency.property.status,
+                landArea: residency.property.landArea,
+                builtArea: residency.property.builtArea,
+
+                complex: residency.property.complex
+                    ? {
+                        id: residency.property.complex.id,
+                        name: residency.property.complex.name
+                    }
+                    : null
             }
             : null,
 
@@ -30,7 +40,6 @@ const toResponse = (residency) => {
             }
             : null
     };
-
 };
 
 module.exports = {

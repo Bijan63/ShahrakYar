@@ -15,9 +15,21 @@ class OwnershipRepository extends BaseRepository {
     // Create Ownership
     async createOwnership(data) {
 
-        return await this.create(data);
+    return await this.model.create({
 
-    }
+        data,
+
+        include: {
+
+            property: true,
+
+            person: true
+
+        }
+
+    });
+
+}
 
 
     // Get All Ownerships

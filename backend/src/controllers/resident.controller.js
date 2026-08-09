@@ -4,8 +4,10 @@ const ResponseHelper = require("../helpers/response.helper");
 
 const residentDTO = require("../dto/resident.dto");
 
-
+// ======================================================
 // Create Resident
+// ======================================================
+
 const createResident = async (req, res, next) => {
 
     try {
@@ -15,14 +17,12 @@ const createResident = async (req, res, next) => {
                 req.body
             );
 
-
         ResponseHelper.created(
             res,
             "Resident created successfully",
             residentDTO(resident)
         );
 
-
     } catch (error) {
 
         next(error);
@@ -31,23 +31,41 @@ const createResident = async (req, res, next) => {
 
 };
 
-
-
+// ======================================================
 // Get All Residents
+// ======================================================
+
 const getResidents = async (req, res, next) => {
 
     try {
 
-        const residents =
-            await residentService.getResidents();
+        const page =
+            Number(req.query.page) || 1;
 
+        const limit =
+            Number(req.query.limit) || 20;
+
+        const result =
+            await residentService.getResidents(
+                page,
+                limit
+            );
 
         ResponseHelper.success(
             res,
             "Residents fetched successfully",
-            residents.map(residentDTO)
-        );
+            {
+                total: result.total,
 
+                page: result.page,
+
+                limit: result.limit,
+
+                pages: result.pages,
+
+                data: result.data.map(residentDTO)
+            }
+        );
 
     } catch (error) {
 
@@ -57,9 +75,10 @@ const getResidents = async (req, res, next) => {
 
 };
 
-
-
+// ======================================================
 // Get Resident By ID
+// ======================================================
+
 const getResident = async (req, res, next) => {
 
     try {
@@ -69,14 +88,12 @@ const getResident = async (req, res, next) => {
                 req.params.id
             );
 
-
         ResponseHelper.success(
             res,
             "Resident fetched successfully",
             residentDTO(resident)
         );
 
-
     } catch (error) {
 
         next(error);
@@ -85,34 +102,34 @@ const getResident = async (req, res, next) => {
 
 };
 
-
-
+// ======================================================
 // Search Residents
+// ======================================================
+
 const searchResidents = async (req, res, next) => {
 
     try {
 
-        const {
-            search,
-            page,
-            limit
-        } = req.query;
-
-
-        const residents =
+        const result =
             await residentService.searchResidents(
-                search,
-                page,
-                limit
+                req.query
             );
-
 
         ResponseHelper.success(
             res,
             "Residents searched successfully",
-            residents.map(residentDTO)
-        );
+            {
+                total: result.total,
 
+                page: result.page,
+
+                limit: result.limit,
+
+                pages: result.pages,
+
+                data: result.data.map(residentDTO)
+            }
+        );
 
     } catch (error) {
 
@@ -122,9 +139,10 @@ const searchResidents = async (req, res, next) => {
 
 };
 
-
-
+// ======================================================
 // Update Resident
+// ======================================================
+
 const updateResident = async (req, res, next) => {
 
     try {
@@ -135,14 +153,12 @@ const updateResident = async (req, res, next) => {
                 req.body
             );
 
-
         ResponseHelper.success(
             res,
             "Resident updated successfully",
             residentDTO(resident)
         );
 
-
     } catch (error) {
 
         next(error);
@@ -151,23 +167,24 @@ const updateResident = async (req, res, next) => {
 
 };
 
-
-
+// ======================================================
 // Delete Resident
+// ======================================================
+
 const deleteResident = async (req, res, next) => {
 
     try {
 
-        await residentService.deleteResident(
-            req.params.id
-        );
-
+        const result =
+            await residentService.deleteResident(
+                req.params.id
+            );
 
         ResponseHelper.success(
             res,
-            "Resident deleted successfully"
+            "Resident deleted successfully",
+            result
         );
-
 
     } catch (error) {
 
@@ -176,8 +193,6 @@ const deleteResident = async (req, res, next) => {
     }
 
 };
-
-
 
 module.exports = {
 

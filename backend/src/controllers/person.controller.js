@@ -2,7 +2,8 @@ const personService = require("../services/person.service");
 const ResponseHelper = require("../helpers/response.helper");
 const {
     personMapper,
-    personPropertiesMapper
+    personPropertiesMapper,
+    personResidenciesMapper
 } = require("../mappers/person.mapper");
 // Create Person
 const createPerson = async (req, res, next) => {
@@ -146,6 +147,34 @@ const getPersonProperties = async (req, res, next) => {
 
 };
 
+
+// ========================================
+// Get Residencies Of One Person
+// ========================================
+
+const getPersonResidencies = async (req, res, next) => {
+
+    try {
+
+        const person =
+            await personService.getPersonResidencies(
+                req.params.id
+            );
+
+        ResponseHelper.success(
+            res,
+            "Person residencies fetched successfully",
+            personResidenciesMapper(person)
+        );
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
 module.exports = {
 
     createPerson,
@@ -154,6 +183,6 @@ module.exports = {
     updatePerson,
     deletePerson,
 
-    getPersonProperties
-
+    getPersonProperties,
+    getPersonResidencies
 };
