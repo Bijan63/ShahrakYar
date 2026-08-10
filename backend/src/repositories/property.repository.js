@@ -340,17 +340,19 @@ class PropertyRepository extends BaseRepository {
 
             include: {
 
-                ownerships: {
+    complex: true,
 
-                    include: {
+    ownerships: {
 
-                        person: true
+        include: {
 
-                    }
+            person: true
 
-                }
+        }
 
-            }
+    }
+
+}
 
         });
 

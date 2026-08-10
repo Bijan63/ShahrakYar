@@ -4,42 +4,216 @@ const router = express.Router();
 
 const personController = require("../controllers/person.controller");
 
-// Create
-router.post("/", personController.createPerson);
+/**
+ * @swagger
+ * tags:
+ *   name: Persons
+ *   description: Person management
+ */
 
+/**
+ * @swagger
+ * /api/persons:
+ *   post:
+ *     summary: Create person
+ *     tags: [Persons]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             required:
+ *               - firstName
+ *               - lastName
+ *               - mobile
+ *               - nationalId
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: محمد
+ *               lastName:
+ *                 type: string
+ *                 example: محمدی
+ *               mobile:
+ *                 type: string
+ *                 example: "09123333333"
+ *               email:
+ *                 type: string
+ *                 nullable: true
+ *                 example: null
+ *               nationalId:
+ *                 type: string
+ *                 example: "3333333333"
+ *     responses:
+ *       201:
+ *         description: Person created successfully
+ *       400:
+ *         description: Invalid person data
+ */
+router.post(
+    "/",
+    personController.createPerson
+);
 
-// Get All
-router.get("/", personController.getPersons);
+/**
+ * @swagger
+ * /api/persons:
+ *   get:
+ *     summary: Get all persons
+ *     tags: [Persons]
+ *     responses:
+ *       200:
+ *         description: Persons fetched successfully
+ */
+router.get(
+    "/",
+    personController.getPersons
+);
 
-
-
-// Get Residencies Of One Person
+/**
+ * @swagger
+ * /api/persons/{id}/residencies:
+ *   get:
+ *     summary: Get residencies of one person
+ *     tags: [Persons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         example: 069602eb-d987-418d-bb2f-9cf9f67d1adb
+ *     responses:
+ *       200:
+ *         description: Person residencies fetched successfully
+ *       404:
+ *         description: Person not found
+ */
 router.get(
     "/:id/residencies",
     personController.getPersonResidencies
 );
 
-// Get Properties Of One Person
+/**
+ * @swagger
+ * /api/persons/{id}/properties:
+ *   get:
+ *     summary: Get properties of one person
+ *     tags: [Persons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         example: 069602eb-d987-418d-bb2f-9cf9f67d1adb
+ *     responses:
+ *       200:
+ *         description: Person properties fetched successfully
+ *       404:
+ *         description: Person not found
+ */
 router.get(
     "/:id/properties",
     personController.getPersonProperties
 );
 
-// Get By ID
+/**
+ * @swagger
+ * /api/persons/{id}:
+ *   get:
+ *     summary: Get person by ID
+ *     tags: [Persons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         example: 069602eb-d987-418d-bb2f-9cf9f67d1adb
+ *     responses:
+ *       200:
+ *         description: Person fetched successfully
+ *       404:
+ *         description: Person not found
+ */
 router.get(
     "/:id",
     personController.getPersonById
 );
 
-
-// Update
+/**
+ * @swagger
+ * /api/persons/{id}:
+ *   put:
+ *     summary: Update person
+ *     tags: [Persons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         example: 069602eb-d987-418d-bb2f-9cf9f67d1adb
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               firstName:
+ *                 type: string
+ *                 example: محمد
+ *               lastName:
+ *                 type: string
+ *                 example: محمدی
+ *               mobile:
+ *                 type: string
+ *                 example: "09123333333"
+ *               email:
+ *                 type: string
+ *                 nullable: true
+ *                 example: null
+ *               nationalId:
+ *                 type: string
+ *                 example: "3333333333"
+ *     responses:
+ *       200:
+ *         description: Person updated successfully
+ *       404:
+ *         description: Person not found
+ */
 router.put(
     "/:id",
     personController.updatePerson
 );
 
-
-// Delete
+/**
+ * @swagger
+ * /api/persons/{id}:
+ *   delete:
+ *     summary: Delete person
+ *     tags: [Persons]
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *         example: 069602eb-d987-418d-bb2f-9cf9f67d1adb
+ *     responses:
+ *       200:
+ *         description: Person deleted successfully
+ *       404:
+ *         description: Person not found
+ */
 router.delete(
     "/:id",
     personController.deletePerson

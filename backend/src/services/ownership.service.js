@@ -381,6 +381,67 @@ class OwnershipService {
 
         }
 
+        // ---------------------
+// Check total percentage
+// ---------------------
+
+if (data.percentage !== undefined) {
+
+    const newPercentage =
+        Number(data.percentage);
+
+    const propertyId =
+        data.propertyId ||
+        existingOwnership.propertyId;
+
+    const activeOwnerships =
+        await prisma.ownership.findMany({
+
+            where: {
+
+                propertyId,
+
+                endDate: null,
+
+                NOT: {
+
+                    id
+
+                }
+
+            },
+
+            select: {
+
+                percentage: true
+
+            }
+
+        });
+
+    const currentTotal =
+        activeOwnerships.reduce(
+
+            (total, ownership) =>
+                total + ownership.percentage,
+
+            0
+
+        );
+
+    if (
+        currentTotal + newPercentage > 100
+    ) {
+
+        throw new AppError(
+            `Total active ownership percentage cannot exceed 100%. Current total excluding this ownership: ${currentTotal}%.`,
+            400
+        );
+
+    }
+
+}
+
 
         // ---------------------
         // Update
