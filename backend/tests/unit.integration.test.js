@@ -780,6 +780,29 @@ describe("Unit integration tests", () => {
         expect(saved.propertyId).toBe(propertyB.id);
     });
 
+
+    test("returns 400 when deleting a Unit with an invalid ID", async () => {
+        const response = await api(
+            adminToken,
+            "delete",
+            "/api/units/not-a-valid-uuid"
+        );
+
+        expect(response.statusCode).toBe(400);
+    });
+
+    test("returns 404 when deleting a nonexistent Unit", async () => {
+        const missingId = require("crypto").randomUUID();
+
+        const response = await api(
+            adminToken,
+            "delete",
+            `/api/units/${missingId}`
+        );
+
+        expect(response.statusCode).toBe(404);
+    });
+
     test("deletes a Unit", async () => {
         const building = await makeBuilding();
 
