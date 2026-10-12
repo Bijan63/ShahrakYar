@@ -127,16 +127,22 @@ class ComplexManagerService {
         // Create assignment
         // -------------------------
 
-        return await complexManagerRepository.create({
+              try {
+            return await complexManagerRepository.create({
+                userId,
+                complexId
+            });
+        } catch (error) {
+            if (error?.code === "P2002") {
+                throw new AppError(
+                    "This manager is already assigned to this complex.",
+                    409
+                );
+            }
 
-            userId,
-
-            complexId
-
-        });
-
+            throw error;
+        }
     }
-
 
     // =========================
     // Get All Assignments
