@@ -660,6 +660,132 @@ describe("Property integration tests", () => {
         expect(response.body.data).toHaveLength(0);
     });
 
+
+    test("returns property detail, owners, and residents", async () => {
+        const payload = villaPayload({
+            landArea: 200,
+            builtArea: 100,
+        });
+
+        const created = await createProperty(payload);
+        expect(created.statusCode).toBe(201);
+
+        const property = await findByCode(payload.code);
+        const person = await makePerson();
+
+        await prisma.ownership.create({
+            data: {
+                propertyId: property.id,
+                personId: person.id,
+                percentage: 100,
+            },
+        });
+
+        await prisma.residency.create({
+            data: {
+                propertyId: property.id,
+                personId: person.id,
+                type: "OWNER",
+            },
+        });
+
+        const detail = await api(
+            adminToken,
+            "get",
+            `/api/properties/detail/${property.id}`
+        );
+
+        expect(detail.statusCode).toBe(200);
+        expect(detail.body.data.id).toBe(property.id);
+        expect(detail.body.data.complex.id).toBe(complexA.id);
+        expect(detail.body.data.owners).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: person.id,
+                    share: 100,
+                }),
+            ])
+        );
+        expect(detail.body.data.residents).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: person.id,
+                    type: "OWNER",
+                }),
+            ])
+        );
+
+        const owners = await api(
+            adminToken,
+            "get",
+            `/api/properties/${property.id}/owners`
+        );
+
+        expect(owners.statusCode).toBe(200);
+        expect(owners.body.data.owners).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: person.id,
+                    share: 100,
+                }),
+            ])
+        );
+
+        const residents = await api(
+            adminToken,
+            "get",
+            `/api/properties/${property.id}/residents`
+        );
+
+        expect(residents.statusCode).toBe(200);
+        expect(residents.body.data.residents).toEqual(
+            expect.arrayContaining([
+                expect.objectContaining({
+                    id: person.id,
+                    type: "OWNER",
+                }),
+            ])
+        );
+    });
+
+    test("denies MANAGER access to detail, owners, and residents outside assigned complex", async () => {
+        const payload = villaPayload({
+            complexId: complexB.id,
+            landArea: 200,
+            builtArea: 100,
+        });
+
+        expect((await createProperty(payload)).statusCode).toBe(201);
+
+        const property = await findByCode(payload.code);
+
+        const paths = [
+            `/api/properties/detail/${property.id}`,
+            `/api/properties/${property.id}/owners`,
+            `/api/properties/${property.id}/residents`,
+        ];
+
+        for (const path of paths) {
+            const response = await api(managerToken, "get", path);
+            expect(response.statusCode).toBe(403);
+        }
+    });
+
+    test("returns 404 for missing property detail, owners, and residents", async () => {
+        const missingId = "00000000-0000-4000-8000-000000000001";
+
+        const paths = [
+            `/api/properties/detail/${missingId}`,
+            `/api/properties/${missingId}/owners`,
+            `/api/properties/${missingId}/residents`,
+        ];
+
+        for (const path of paths) {
+            const response = await api(adminToken, "get", path);
+            expect(response.statusCode).toBe(404);
+        }
+    });
+
     test("deletes a property, cascades dependent records, and preserves Unit with null propertyId", async () => {
         const payload = villaPayload({
             landArea: 200,
