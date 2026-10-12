@@ -1,23 +1,35 @@
-const personService = require("../services/person.service");
-const ResponseHelper = require("../helpers/response.helper");
+const personService =
+    require("../services/person.service");
+
+const ResponseHelper =
+    require("../helpers/response.helper");
+
 const {
     personMapper,
     personPropertiesMapper,
     personResidenciesMapper
 } = require("../mappers/person.mapper");
+
+
+// =========================
 // Create Person
+// =========================
+
 const createPerson = async (req, res, next) => {
 
     try {
 
-        const person = await personService.createPerson(
-            req.body
-        );
+        const person =
+            await personService.createPerson(
+                req.body
+            );
 
-        res.status(201).json({
-            success: true,
-            person: personMapper(person)
-        });
+
+        ResponseHelper.created(
+            res,
+            "Person created successfully",
+            personMapper(person)
+        );
 
     } catch (error) {
 
@@ -27,21 +39,24 @@ const createPerson = async (req, res, next) => {
 
 };
 
+
+// =========================
 // Get All Persons
+// =========================
+
 const getPersons = async (req, res, next) => {
 
     try {
 
-        const persons = await personService.getPersons();
+        const persons =
+            await personService.getPersons();
 
-        res.json({
 
-    success:true,
-
-    persons:
-        persons.map(personMapper)
-
-});
+        ResponseHelper.success(
+            res,
+            "Persons fetched successfully",
+            persons.map(personMapper)
+        );
 
     } catch (error) {
 
@@ -51,24 +66,26 @@ const getPersons = async (req, res, next) => {
 
 };
 
+
+// =========================
 // Get Person By ID
+// =========================
+
 const getPersonById = async (req, res, next) => {
 
     try {
 
-        const person = await personService.getPersonById(
-            req.params.id
+        const person =
+            await personService.getPersonById(
+                req.params.id
+            );
+
+
+        ResponseHelper.success(
+            res,
+            "Person fetched successfully",
+            personMapper(person)
         );
-
-
-        res.json({
-
-            success: true,
-
-            person: personMapper(person)
-
-        });
-
 
     } catch (error) {
 
@@ -78,20 +95,27 @@ const getPersonById = async (req, res, next) => {
 
 };
 
+
+// =========================
 // Update Person
+// =========================
+
 const updatePerson = async (req, res, next) => {
 
     try {
 
-        const person = await personService.updatePerson(
-            req.params.id,
-            req.body
-        );
+        const person =
+            await personService.updatePerson(
+                req.params.id,
+                req.body
+            );
 
-        res.json({
-            success: true,
-            person: personMapper(person)
-        });
+
+        ResponseHelper.success(
+            res,
+            "Person updated successfully",
+            personMapper(person)
+        );
 
     } catch (error) {
 
@@ -101,7 +125,11 @@ const updatePerson = async (req, res, next) => {
 
 };
 
+
+// =========================
 // Delete Person
+// =========================
+
 const deletePerson = async (req, res, next) => {
 
     try {
@@ -110,10 +138,11 @@ const deletePerson = async (req, res, next) => {
             req.params.id
         );
 
-        res.json({
-            success: true,
-            message: "Person deleted successfully"
-        });
+
+        ResponseHelper.success(
+            res,
+            "Person deleted successfully"
+        );
 
     } catch (error) {
 
@@ -123,7 +152,11 @@ const deletePerson = async (req, res, next) => {
 
 };
 
+
+// =========================
 // Get Properties Of One Person
+// =========================
+
 const getPersonProperties = async (req, res, next) => {
 
     try {
@@ -132,6 +165,7 @@ const getPersonProperties = async (req, res, next) => {
             await personService.getPersonProperties(
                 req.params.id
             );
+
 
         ResponseHelper.success(
             res,
@@ -148,9 +182,9 @@ const getPersonProperties = async (req, res, next) => {
 };
 
 
-// ========================================
+// =========================
 // Get Residencies Of One Person
-// ========================================
+// =========================
 
 const getPersonResidencies = async (req, res, next) => {
 
@@ -160,6 +194,7 @@ const getPersonResidencies = async (req, res, next) => {
             await personService.getPersonResidencies(
                 req.params.id
             );
+
 
         ResponseHelper.success(
             res,
@@ -175,14 +210,25 @@ const getPersonResidencies = async (req, res, next) => {
 
 };
 
+
+// =========================
+// Export
+// =========================
+
 module.exports = {
 
     createPerson,
+
     getPersons,
+
     getPersonById,
+
     updatePerson,
+
     deletePerson,
 
     getPersonProperties,
+
     getPersonResidencies
+
 };

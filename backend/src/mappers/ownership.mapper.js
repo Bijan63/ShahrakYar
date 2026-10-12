@@ -1,6 +1,6 @@
 const ownershipMapper = (ownership) => {
 
-    if (!ownership) return null;
+    if (!ownership) {return null;}
 
 
     return {

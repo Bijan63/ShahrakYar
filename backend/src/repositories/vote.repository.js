@@ -1,6 +1,29 @@
 const prisma = require("../config/prisma");
 
 class VoteRepository {
+
+    // Create vote
+    async create(data) {
+        return prisma.vote.create({
+            data
+        });
+    }
+
+
+    // Find an existing vote by voter and election
+    async findByVoterAndElection(voterId, electionId) {
+        return prisma.vote.findUnique({
+            where: {
+                electionId_voterId: {
+                    electionId,
+                    voterId
+                }
+            }
+        });
+    }
+
+
+    // Get election result
     async getElectionResult(electionId) {
         return prisma.candidate.findMany({
             where: {
@@ -8,9 +31,10 @@ class VoteRepository {
             },
 
             include: {
-                resident: {
+                person: {
                     select: {
-                        fullName: true
+                        firstName: true,
+                        lastName: true
                     }
                 },
 
@@ -29,3 +53,5 @@ class VoteRepository {
         });
     }
 }
+
+module.exports = new VoteRepository();

@@ -2,7 +2,15 @@ const express = require("express");
 
 const router = express.Router();
 
-const residencyController = require("../controllers/residency.controller");
+const residencyController =
+    require("../controllers/residency.controller");
+
+const verifyToken =
+    require("../middleware/auth.middleware");
+
+const authorize =
+    require("../middleware/role.middleware");
+
 
 /**
  * @swagger
@@ -10,6 +18,17 @@ const residencyController = require("../controllers/residency.controller");
  *   name: Residencies
  *   description: Property residency management
  */
+
+
+/**
+ * All residency endpoints require authentication
+ * and ADMIN or MANAGER role.
+ */
+router.use(
+    verifyToken,
+    authorize("ADMIN", "MANAGER")
+);
+
 
 /**
  * @swagger
@@ -33,18 +52,12 @@ const residencyController = require("../controllers/residency.controller");
  *               propertyId:
  *                 type: string
  *                 format: uuid
- *                 example: "810faaa4-e7c9-4a91-9fc3-eeb21ff197d0"
  *               personId:
  *                 type: string
  *                 format: uuid
- *                 example: "069602eb-d987-418d-bb2f-9cf9f67d1adb"
  *               type:
  *                 type: string
- *                 enum:
- *                   - OWNER
- *                   - TENANT
- *                   - RESIDENT
- *                 example: OWNER
+ *                 enum: [OWNER, TENANT, FAMILY]
  *               startDate:
  *                 type: string
  *                 format: date-time
@@ -55,52 +68,44 @@ const residencyController = require("../controllers/residency.controller");
  *     responses:
  *       201:
  *         description: Residency created
+ *       400:
+ *         description: Invalid residency data
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Property or person not found
+ *       409:
+ *         description: Residency conflict
  */
 router.post(
     "/",
     residencyController.createResidency
 );
 
+
 /**
  * @swagger
  * /api/residencies:
  *   get:
- *     summary: Get all residencies
+ *     summary: Get accessible residencies
  *     tags: [Residencies]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: Residency list
+ *         description: Residencies fetched successfully
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
  */
 router.get(
     "/",
     residencyController.getResidencies
 );
 
-/**
- * @swagger
- * /api/residencies/{id}:
- *   get:
- *     summary: Get residency by id
- *     tags: [Residencies]
- *     security:
- *       - bearerAuth: []
- *     parameters:
- *       - in: path
- *         name: id
- *         required: true
- *         schema:
- *           type: string
- *           format: uuid
- *     responses:
- *       200:
- *         description: Residency found
- */
-router.get(
-    "/:id",
-    residencyController.getResidencyById
-);
 
 /**
  * @swagger
@@ -119,12 +124,46 @@ router.get(
  *           format: uuid
  *     responses:
  *       200:
- *         description: Residents list
+ *         description: Property residents fetched successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Property not found or inaccessible
  */
 router.get(
     "/property/:propertyId/residents",
     residencyController.getResidentsByProperty
 );
+
+
+/**
+ * @swagger
+ * /api/residencies/{id}:
+ *   get:
+ *     summary: Get residency by ID
+ *     tags: [Residencies]
+ *     security:
+ *       - bearerAuth: []
+ *     parameters:
+ *       - in: path
+ *         name: id
+ *         required: true
+ *         schema:
+ *           type: string
+ *           format: uuid
+ *     responses:
+ *       200:
+ *         description: Residency fetched successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Residency not found
+ */
+router.get(
+    "/:id",
+    residencyController.getResidencyById
+);
+
 
 /**
  * @swagger
@@ -148,12 +187,15 @@ router.get(
  *           schema:
  *             type: object
  *             properties:
+ *               propertyId:
+ *                 type: string
+ *                 format: uuid
+ *               personId:
+ *                 type: string
+ *                 format: uuid
  *               type:
  *                 type: string
- *                 enum:
- *                   - OWNER
- *                   - TENANT
- *                   - RESIDENT
+ *                 enum: [OWNER, TENANT, FAMILY]
  *               startDate:
  *                 type: string
  *                 format: date-time
@@ -163,12 +205,23 @@ router.get(
  *                 nullable: true
  *     responses:
  *       200:
- *         description: Residency updated
+ *         description: Residency updated successfully
+ *       400:
+ *         description: Invalid residency data or date range
+ *       401:
+ *         description: Unauthorized
+ *       403:
+ *         description: Forbidden
+ *       404:
+ *         description: Residency, property, or person not found
+ *       409:
+ *         description: Residency conflict
  */
 router.put(
     "/:id",
     residencyController.updateResidency
 );
+
 
 /**
  * @swagger
@@ -187,11 +240,16 @@ router.put(
  *           format: uuid
  *     responses:
  *       200:
- *         description: Residency deleted
+ *         description: Residency deleted successfully
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: Residency not found
  */
 router.delete(
     "/:id",
     residencyController.deleteResidency
 );
+
 
 module.exports = router;

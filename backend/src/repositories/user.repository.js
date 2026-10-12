@@ -4,12 +4,35 @@ class UserRepository {
 
     // =====================
     // Create
+    // بدون password در Response
     // =====================
 
     async create(data) {
 
         return prisma.user.create({
-            data
+
+            data,
+
+            select: {
+
+                id: true,
+
+                fullName: true,
+
+                email: true,
+
+                role: true,
+
+                status: true,
+
+                personId: true,
+
+                createdAt: true,
+
+                updatedAt: true
+
+            }
+
         });
 
     }
@@ -98,6 +121,62 @@ class UserRepository {
                 createdAt: true,
 
                 updatedAt: true
+
+            }
+
+        });
+
+    }
+
+
+    // =====================
+    // Find By ID With Person
+    // برای احراز هویت رأی‌دهنده
+    // =====================
+
+    async findByIdWithPerson(id) {
+
+        return prisma.user.findUnique({
+
+            where: {
+                id
+            },
+
+            select: {
+
+                id: true,
+
+                fullName: true,
+
+                email: true,
+
+                role: true,
+
+                status: true,
+
+                personId: true,
+
+                person: {
+
+                    select: {
+
+                        id: true,
+
+                        firstName: true,
+
+                        lastName: true,
+
+                        nationalId: true,
+
+                        mobile: true,
+
+                        email: true,
+
+                        status: true
+
+                    }
+
+                }
 
             }
 

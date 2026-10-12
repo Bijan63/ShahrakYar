@@ -42,10 +42,14 @@ router.get("/", verifyToken, electionController.getElections);
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
+ *         description: Election UUID
  *     responses:
  *       200:
  *         description: Election found
+ *       404:
+ *         description: Election not found
  */
 router.get("/:id", verifyToken, electionController.getElection);
 
@@ -62,12 +66,16 @@ router.get("/:id", verifyToken, electionController.getElection);
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
+ *         description: Election UUID
  *     responses:
  *       200:
  *         description: Election result
+ *       404:
+ *         description: Election not found
  */
-router.get("/:id/result", verifyToken, electionController.getResult);
+router.get("/:id/result", verifyToken, authorize("ADMIN", "MANAGER"), electionController.getResult);
 
 /**
  * @swagger
@@ -90,22 +98,28 @@ router.get("/:id/result", verifyToken, electionController.getResult);
  *             properties:
  *               title:
  *                 type: string
+ *                 example: "انتخابات هیئت مدیره شهرک رضوی"
  *               description:
  *                 type: string
+ *                 example: "انتخابات اعضای هیئت مدیره شهرک رضوی"
  *               startDate:
  *                 type: string
  *                 format: date-time
+ *                 example: "2026-08-15T16:00:00.000Z"
  *               endDate:
  *                 type: string
  *                 format: date-time
+ *                 example: "2026-08-22T16:00:00.000Z"
  *     responses:
  *       201:
  *         description: Election created
+ *       400:
+ *         description: Invalid election data
  */
 router.post(
     "/",
     verifyToken,
-    authorize("ADMIN"),
+    authorize("ADMIN", "MANAGER"),
     electionController.createElection
 );
 
@@ -122,10 +136,17 @@ router.post(
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
+ *         description: Election UUID
+ *         example: "80b21098-13fb-4132-bcca-c5528dc5bd8d"
  *     responses:
  *       200:
- *         description: Election opened
+ *         description: Election opened successfully
+ *       400:
+ *         description: Election cannot be opened
+ *       404:
+ *         description: Election not found
  */
 router.patch(
     "/:id/open",
@@ -147,10 +168,16 @@ router.patch(
  *         name: id
  *         required: true
  *         schema:
- *           type: integer
+ *           type: string
+ *           format: uuid
+ *         description: Election UUID
  *     responses:
  *       200:
- *         description: Election closed
+ *         description: Election closed successfully
+ *       400:
+ *         description: Election cannot be closed
+ *       404:
+ *         description: Election not found
  */
 router.patch(
     "/:id/close",

@@ -1,26 +1,33 @@
-const residentService = require("../services/resident.service");
+const residentService =
+    require("../services/resident.service");
 
-const ResponseHelper = require("../helpers/response.helper");
+const ResponseHelper =
+    require("../helpers/response.helper");
 
-const residentDTO = require("../dto/resident.dto");
 
 // ======================================================
 // Create Resident
 // ======================================================
 
-const createResident = async (req, res, next) => {
+const createResident = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const resident =
             await residentService.createResident(
-                req.body
+                req.body,
+                req.user
             );
+
 
         ResponseHelper.created(
             res,
             "Resident created successfully",
-            residentDTO(resident)
+            resident
         );
 
     } catch (error) {
@@ -31,40 +38,39 @@ const createResident = async (req, res, next) => {
 
 };
 
+
 // ======================================================
 // Get All Residents
 // ======================================================
 
-const getResidents = async (req, res, next) => {
+const getResidents = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const page =
             Number(req.query.page) || 1;
 
+
         const limit =
             Number(req.query.limit) || 20;
+
 
         const result =
             await residentService.getResidents(
                 page,
-                limit
+                limit,
+                req.user
             );
+
 
         ResponseHelper.success(
             res,
             "Residents fetched successfully",
-            {
-                total: result.total,
-
-                page: result.page,
-
-                limit: result.limit,
-
-                pages: result.pages,
-
-                data: result.data.map(residentDTO)
-            }
+            result
         );
 
     } catch (error) {
@@ -74,24 +80,31 @@ const getResidents = async (req, res, next) => {
     }
 
 };
+
 
 // ======================================================
 // Get Resident By ID
 // ======================================================
 
-const getResident = async (req, res, next) => {
+const getResident = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const resident =
             await residentService.getResidentById(
-                req.params.id
+                req.params.id,
+                req.user
             );
+
 
         ResponseHelper.success(
             res,
             "Resident fetched successfully",
-            residentDTO(resident)
+            resident
         );
 
     } catch (error) {
@@ -101,34 +114,31 @@ const getResident = async (req, res, next) => {
     }
 
 };
+
 
 // ======================================================
 // Search Residents
 // ======================================================
 
-const searchResidents = async (req, res, next) => {
+const searchResidents = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const result =
             await residentService.searchResidents(
-                req.query
+                req.query,
+                req.user
             );
+
 
         ResponseHelper.success(
             res,
             "Residents searched successfully",
-            {
-                total: result.total,
-
-                page: result.page,
-
-                limit: result.limit,
-
-                pages: result.pages,
-
-                data: result.data.map(residentDTO)
-            }
+            result
         );
 
     } catch (error) {
@@ -139,24 +149,31 @@ const searchResidents = async (req, res, next) => {
 
 };
 
+
 // ======================================================
 // Update Resident
 // ======================================================
 
-const updateResident = async (req, res, next) => {
+const updateResident = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const resident =
             await residentService.updateResident(
                 req.params.id,
-                req.body
+                req.body,
+                req.user
             );
+
 
         ResponseHelper.success(
             res,
             "Resident updated successfully",
-            residentDTO(resident)
+            resident
         );
 
     } catch (error) {
@@ -167,18 +184,25 @@ const updateResident = async (req, res, next) => {
 
 };
 
+
 // ======================================================
 // Delete Resident
 // ======================================================
 
-const deleteResident = async (req, res, next) => {
+const deleteResident = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const result =
             await residentService.deleteResident(
-                req.params.id
+                req.params.id,
+                req.user
             );
+
 
         ResponseHelper.success(
             res,
@@ -193,6 +217,11 @@ const deleteResident = async (req, res, next) => {
     }
 
 };
+
+
+// ======================================================
+// Export
+// ======================================================
 
 module.exports = {
 

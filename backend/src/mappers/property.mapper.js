@@ -1,6 +1,6 @@
 const propertySummary = (property) => {
 
-    if (!property) return null;
+    if (!property) {return null;}
 
 
     return {
@@ -27,7 +27,7 @@ const propertySummary = (property) => {
 
 const propertyMapper = (property) => {
 
-    if (!property) return null;
+    if (!property) {return null;}
 
 
     return {

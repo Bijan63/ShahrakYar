@@ -1,6 +1,8 @@
 const prisma = require("../config/prisma");
 
-const BaseRepository = require("../core/BaseRepository");
+const BaseRepository =
+    require("../core/BaseRepository");
+
 
 class PersonRepository extends BaseRepository {
 
@@ -42,6 +44,25 @@ class PersonRepository extends BaseRepository {
 
 
     // =========================
+    // Get Person By National ID
+    // =========================
+
+    async getPersonByNationalId(nationalId) {
+
+        return await this.model.findUnique({
+
+            where: {
+
+                nationalId
+
+            }
+
+        });
+
+    }
+
+
+    // =========================
     // Create Person
     // =========================
 
@@ -56,7 +77,10 @@ class PersonRepository extends BaseRepository {
     // Update Person
     // =========================
 
-    async updatePerson(id, data) {
+    async updatePerson(
+        id,
+        data
+    ) {
 
         return await this.update(
             id,

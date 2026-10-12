@@ -1,7 +1,16 @@
-const complexService = require("../services/complex.service");
+const complexService =
+    require("../services/complex.service");
 
 
-const createComplex = async (req, res, next) => {
+// ==================================================
+// Create Complex
+// ==================================================
+
+const createComplex = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
@@ -19,7 +28,6 @@ const createComplex = async (req, res, next) => {
 
         });
 
-
     } catch (err) {
 
         next(err);
@@ -29,13 +37,22 @@ const createComplex = async (req, res, next) => {
 };
 
 
+// ==================================================
+// Get All Accessible Complexes
+// ==================================================
 
-const getComplexes = async (req, res, next) => {
+const getComplexes = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const complexes =
-            await complexService.getComplexes();
+            await complexService.getComplexes(
+                req.user
+            );
 
 
         return res.json({
@@ -46,7 +63,6 @@ const getComplexes = async (req, res, next) => {
 
         });
 
-
     } catch (err) {
 
         next(err);
@@ -56,14 +72,22 @@ const getComplexes = async (req, res, next) => {
 };
 
 
+// ==================================================
+// Get Complex By ID
+// ==================================================
 
-const getComplexById = async (req, res, next) => {
+const getComplexById = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const complex =
             await complexService.getComplexById(
-                req.params.id
+                req.params.id,
+                req.user
             );
 
 
@@ -75,7 +99,6 @@ const getComplexById = async (req, res, next) => {
 
         });
 
-
     } catch (err) {
 
         next(err);
@@ -85,8 +108,15 @@ const getComplexById = async (req, res, next) => {
 };
 
 
+// ==================================================
+// Update Complex
+// ==================================================
 
-const updateComplex = async (req, res, next) => {
+const updateComplex = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
@@ -96,7 +126,6 @@ const updateComplex = async (req, res, next) => {
                 req.body
             );
 
-
         return res.json({
 
             success: true,
@@ -104,7 +133,6 @@ const updateComplex = async (req, res, next) => {
             complex
 
         });
-
 
     } catch (err) {
 
@@ -115,15 +143,23 @@ const updateComplex = async (req, res, next) => {
 };
 
 
+// ==================================================
+// Delete Complex
+// ==================================================
 
-const deleteComplex = async (req, res, next) => {
+const deleteComplex = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const result =
-            await complexService.deleteComplex(
-                req.params.id
-            );
+    await complexService.deleteComplex(
+        req.params.id,
+        req.user
+    );
 
 
         return res.json({
@@ -134,7 +170,6 @@ const deleteComplex = async (req, res, next) => {
 
         });
 
-
     } catch (err) {
 
         next(err);
@@ -142,7 +177,6 @@ const deleteComplex = async (req, res, next) => {
     }
 
 };
-
 
 
 module.exports = {

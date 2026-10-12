@@ -8,7 +8,7 @@ datasource db {
 }
 
 // ======================================================
-// USER & PERSON
+// User
 // ======================================================
 
 model User {
@@ -26,9 +26,10 @@ model User {
 
   personId String? @unique
 
-  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
-
+  person   Person?   @relation(fields: [personId], references: [id], onDelete: SetNull)
   resident Resident?
+
+  managedComplexes ComplexManager[]
 
   auditLogs AuditLog[]
 
@@ -36,6 +37,10 @@ model User {
 
   updatedAt DateTime @updatedAt
 }
+
+// ======================================================
+// Person
+// ======================================================
 
 model Person {
   id String @id @default(uuid())
@@ -74,7 +79,7 @@ model Person {
 }
 
 // ======================================================
-// COMPLEX
+// Complex
 // ======================================================
 
 model Complex {
@@ -93,10 +98,33 @@ model Complex {
   buildings Building[]
 
   properties Property[]
+
+  managers  ComplexManager[]
+  elections Election[]
 }
 
 // ======================================================
-// BUILDING
+// Complex Manager
+// ======================================================
+
+model ComplexManager {
+  id String @id @default(uuid())
+
+  userId String
+
+  complexId String
+
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  complex   Complex  @relation(fields: [complexId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+
+  @@unique([userId, complexId])
+  @@index([userId])
+  @@index([complexId])
+}
+
+// ======================================================
+// Building
 // ======================================================
 
 model Building {
@@ -111,10 +139,7 @@ model Building {
   complexId String
 
   complex Complex @relation(fields: [complexId], references: [id], onDelete: Cascade)
-
-  units Unit[]
-
-  residents Resident[]
+  units   Unit[]
 
   createdAt DateTime @default(now())
 
@@ -125,7 +150,7 @@ model Building {
 }
 
 // ======================================================
-// PROPERTY
+// Property
 // ======================================================
 
 model Property {
@@ -134,8 +159,7 @@ model Property {
   complexId String
 
   complex Complex @relation(fields: [complexId], references: [id], onDelete: Cascade)
-
-  code String @unique
+  code    String  @unique
 
   registryNumber String?
 
@@ -159,15 +183,14 @@ model Property {
 
   residencies Residency[]
 
-  addresses PropertyAddress[]
+  addresses PropertyAddress?
 
-  @@index([complexId])
   @@index([propertyType])
   @@index([status])
 }
 
 // ======================================================
-// UNIT
+// Unit
 // ======================================================
 
 model Unit {
@@ -183,13 +206,13 @@ model Unit {
 
   buildingId String?
 
-  building Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
-
+  building   Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
   propertyId String?
 
-  property Property? @relation(fields: [propertyId], references: [id], onDelete: SetNull)
-
+  property  Property?  @relation(fields: [propertyId], references: [id], onDelete: SetNull)
   residents Resident[]
+
+  unitAccount UnitAccount?
 
   createdAt DateTime @default(now())
 
@@ -200,16 +223,15 @@ model Unit {
 }
 
 // ======================================================
-// PROPERTY ADDRESS
+// Property Address
 // ======================================================
 
 model PropertyAddress {
   id String @id @default(uuid())
 
-  propertyId String
+  propertyId String @unique
 
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-
+  property   Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
   mainStreet String?
 
   subStreet String?
@@ -228,7 +250,7 @@ model PropertyAddress {
 }
 
 // ======================================================
-// OWNERSHIP
+// Ownership
 // ======================================================
 
 model Ownership {
@@ -244,10 +266,8 @@ model Ownership {
 
   endDate DateTime?
 
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
-
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
@@ -258,7 +278,7 @@ model Ownership {
 }
 
 // ======================================================
-// RESIDENCY
+// Residency
 // ======================================================
 
 model Residency {
@@ -274,10 +294,8 @@ model Residency {
 
   endDate DateTime?
 
-  property Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
-
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
-
+  property  Property @relation(fields: [propertyId], references: [id], onDelete: Cascade)
+  person    Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
@@ -288,7 +306,7 @@ model Residency {
 }
 
 // ======================================================
-// RESIDENT
+// Resident
 // ======================================================
 
 model Resident {
@@ -298,36 +316,473 @@ model Resident {
 
   mobile String
 
-  residentType ResidentType
-
   userId String @unique
-
-  unitId String
-
-  buildingId String?
 
   personId String? @unique
 
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  unitId String
 
-  unit Unit @relation(fields: [unitId], references: [id], onDelete: Cascade)
-
-  building Building? @relation(fields: [buildingId], references: [id], onDelete: SetNull)
-
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
   person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+  unit   Unit    @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  votes  Vote[]
 
-  votes Vote[]
+  chargePayments ChargePayment[]
 
   createdAt DateTime @default(now())
 
   updatedAt DateTime @updatedAt
 
   @@index([unitId])
-  @@index([buildingId])
 }
 
 // ======================================================
-// ELECTION
+// Unit Account
+// ======================================================
+
+model UnitAccount {
+  id String @id @default(uuid())
+
+  unitId String @unique
+
+  unit Unit   @relation(fields: [unitId], references: [id], onDelete: Cascade)
+  code String @unique
+
+  title String?
+
+  isActive Boolean @default(true)
+
+  charges Charge[]
+
+  payments ChargePayment[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([isActive])
+}
+
+// ======================================================
+// Fiscal Period
+// ======================================================
+
+model FiscalPeriod {
+  id String @id @default(uuid())
+
+  code String @unique
+
+  name String
+
+  startDate DateTime
+
+  endDate DateTime
+
+  status RecordStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  accounts Account[]
+
+  financialAccounts FinancialAccount[]
+
+  funds Fund[]
+
+  propertyAccounts PropertyAccount[]
+
+  journalEntries JournalEntry[]
+
+  openingBalances OpeningBalance[]
+
+  charges Charge[]
+
+  accountingConfiguration AccountingConfiguration?
+
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status])
+}
+
+// ======================================================
+// Fund
+// ======================================================
+
+model Fund {
+  id String @id @default(uuid())
+
+  code String @unique
+
+  name String
+
+  type FundType
+
+  description String?
+
+  status RecordStatus @default(ACTIVE)
+
+  fiscalPeriodId String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  financialAccounts FinancialAccount[]
+
+  fiscalPeriod     FiscalPeriod?     @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  propertyAccounts PropertyAccount[]
+
+  journalEntries JournalEntry[]
+
+  @@index([type])
+  @@index([status])
+  @@index([fiscalPeriodId])
+}
+
+// ======================================================
+// Property Account
+// ======================================================
+
+model PropertyAccount {
+  id String @id @default(uuid())
+
+  accountNumber String @unique
+
+  propertyId String @unique
+
+  name String
+
+  status RecordStatus @default(ACTIVE)
+
+  fiscalPeriodId String?
+
+  fundId String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  fiscalPeriod FiscalPeriod? @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  fund         Fund?         @relation(fields: [fundId], references: [id], onDelete: Restrict)
+
+  @@index([propertyId])
+  @@index([status])
+  @@index([fiscalPeriodId])
+  @@index([fundId])
+}
+
+// ======================================================
+// Account
+// ======================================================
+
+model Account {
+  id String @id @default(uuid())
+
+  code String
+
+  name String
+
+  type AccountType
+
+  description String?
+
+  isActive Boolean @default(true)
+
+  parentId String?
+
+  fiscalPeriodId String
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  fiscalPeriod      FiscalPeriod       @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  parent            Account?           @relation("AccountHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children          Account[]          @relation("AccountHierarchy")
+  journalEntryLines JournalEntryLine[]
+
+  openingBalances OpeningBalance[]
+
+  financialAccounts FinancialAccount[]
+
+  chargeReceivableConfigurations AccountingConfiguration[] @relation("ChargeReceivableAccount")
+  chargeRevenueConfigurations    AccountingConfiguration[] @relation("ChargeRevenueAccount")
+
+  @@unique([fiscalPeriodId, code])
+  @@index([type])
+  @@index([parentId])
+  @@index([isActive])
+  @@index([fiscalPeriodId])
+}
+
+// ======================================================
+// Financial Account
+// ======================================================
+
+model FinancialAccount {
+  id String @id @default(uuid())
+
+  code String @unique
+
+  name String
+
+  type FinancialAccountType
+
+  bankName String?
+
+  accountNumber String?
+
+  cardNumber String?
+
+  iban String?
+
+  openingBalance Decimal @default(0) @db.Decimal(18, 2)
+
+  status RecordStatus @default(ACTIVE)
+
+  fiscalPeriodId String?
+
+  fundId String?
+
+  accountId String? @unique
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  fiscalPeriod   FiscalPeriod?   @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  fund           Fund?           @relation(fields: [fundId], references: [id], onDelete: Restrict)
+  account        Account?        @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  chargePayments ChargePayment[]
+
+  @@index([type])
+  @@index([status])
+  @@index([fiscalPeriodId])
+  @@index([fundId])
+  @@index([accountId])
+}
+
+// ======================================================
+// Accounting Configuration
+// ======================================================
+//
+// One configuration per FiscalPeriod.
+//
+// Charge Receivable:
+//     ASSET
+//
+// Charge Revenue:
+//     REVENUE
+//
+// The Account type validation is handled by
+// AccountingConfigurationService.
+//
+// ======================================================
+
+model AccountingConfiguration {
+  id String @id @default(uuid())
+
+  fiscalPeriodId String @unique
+
+  chargeReceivableAccountId String
+
+  chargeRevenueAccountId String
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  fiscalPeriod            FiscalPeriod @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  chargeReceivableAccount Account      @relation("ChargeReceivableAccount", fields: [chargeReceivableAccountId], references: [id], onDelete: Restrict)
+  chargeRevenueAccount    Account      @relation("ChargeRevenueAccount", fields: [chargeRevenueAccountId], references: [id], onDelete: Restrict)
+
+  @@index([chargeReceivableAccountId])
+  @@index([chargeRevenueAccountId])
+}
+
+// ======================================================
+// Charge
+// ======================================================
+
+model Charge {
+  id String @id @default(uuid())
+
+  unitAccountId String
+
+  unitAccount    UnitAccount @relation(fields: [unitAccountId], references: [id], onDelete: Restrict)
+  fiscalPeriodId String?
+
+  fiscalPeriod FiscalPeriod? @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  type         ChargeType
+
+  periodYear Int
+
+  periodMonth Int?
+
+  amount Decimal @db.Decimal(18, 2)
+
+  description String
+
+  issueDate DateTime @default(now())
+
+  dueDate DateTime?
+
+  status ChargeStatus @default(ISSUED)
+
+  payments ChargePayment[]
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([unitAccountId])
+  @@index([fiscalPeriodId])
+  @@index([type])
+  @@index([periodYear])
+  @@index([periodMonth])
+  @@index([status])
+  @@index([issueDate])
+  @@index([dueDate])
+}
+
+// ======================================================
+// Charge Payment
+// ======================================================
+
+model ChargePayment {
+  id String @id @default(uuid())
+
+  unitAccountId String
+
+  unitAccount UnitAccount @relation(fields: [unitAccountId], references: [id], onDelete: Restrict)
+  chargeId    String?
+
+  charge     Charge? @relation(fields: [chargeId], references: [id], onDelete: Restrict)
+  residentId String?
+
+  resident           Resident? @relation(fields: [residentId], references: [id], onDelete: SetNull)
+  financialAccountId String?
+
+  financialAccount FinancialAccount? @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
+  journalEntryId   String?
+
+  journalEntry JournalEntry? @relation(fields: [journalEntryId], references: [id], onDelete: Restrict)
+  amount       Decimal       @db.Decimal(18, 2)
+
+  paymentDate DateTime @default(now())
+
+  description String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  @@index([unitAccountId])
+  @@index([chargeId])
+  @@index([residentId])
+  @@index([financialAccountId])
+  @@index([journalEntryId])
+  @@index([paymentDate])
+}
+
+// ======================================================
+// Journal Entry
+// ======================================================
+
+model JournalEntry {
+  id String @id @default(uuid())
+
+  entryNumber String @unique
+
+  entryDate DateTime
+
+  description String?
+
+  status JournalEntryStatus @default(DRAFT)
+
+  fiscalPeriodId String
+
+  fundId String?
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  fiscalPeriod FiscalPeriod       @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  fund         Fund?              @relation(fields: [fundId], references: [id], onDelete: Restrict)
+  lines        JournalEntryLine[]
+
+  chargePayments ChargePayment[]
+
+  @@index([entryDate])
+  @@index([status])
+  @@index([fiscalPeriodId])
+  @@index([fundId])
+}
+
+// ======================================================
+// Journal Entry Line
+// ======================================================
+
+model JournalEntryLine {
+  id String @id @default(uuid())
+
+  journalEntryId String
+
+  accountId String
+
+  description String?
+
+  debit Decimal @default(0) @db.Decimal(18, 2)
+
+  credit Decimal @default(0) @db.Decimal(18, 2)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  journalEntry JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  account      Account      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+// ======================================================
+// Opening Balance
+// ======================================================
+
+model OpeningBalance {
+  id String @id @default(uuid())
+
+  fiscalPeriodId String
+
+  accountId String
+
+  debit Decimal @default(0) @db.Decimal(18, 2)
+
+  credit Decimal @default(0) @db.Decimal(18, 2)
+
+  description String?
+
+  status RecordStatus @default(ACTIVE)
+
+  createdAt DateTime @default(now())
+
+  updatedAt DateTime @updatedAt
+
+  fiscalPeriod FiscalPeriod @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  account      Account      @relation(fields: [accountId], references: [id], onDelete: Restrict)
+
+  @@unique([fiscalPeriodId, accountId])
+  @@index([fiscalPeriodId])
+  @@index([accountId])
+  @@index([status])
+}
+
+// ======================================================
+// Election
 // ======================================================
 
 model Election {
@@ -343,6 +798,10 @@ model Election {
 
   status ElectionStatus @default(DRAFT)
 
+  complexId String?
+
+  complex Complex? @relation(fields: [complexId], references: [id], onDelete: Restrict)
+
   candidates Candidate[]
 
   votes Vote[]
@@ -354,10 +813,11 @@ model Election {
   updatedAt DateTime @updatedAt
 
   @@index([status])
+  @@index([complexId])
 }
 
 // ======================================================
-// CANDIDATE
+// Candidate
 // ======================================================
 
 model Candidate {
@@ -370,10 +830,8 @@ model Candidate {
   biography String?
 
   election Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
-
-  person Person @relation(fields: [personId], references: [id], onDelete: Cascade)
-
-  votes Vote[]
+  person   Person   @relation(fields: [personId], references: [id], onDelete: Cascade)
+  votes    Vote[]
 
   createdAt DateTime @default(now())
 
@@ -384,7 +842,7 @@ model Candidate {
 }
 
 // ======================================================
-// VOTE
+// Vote
 // ======================================================
 
 model Vote {
@@ -396,15 +854,13 @@ model Vote {
 
   candidateId String
 
-  election Election @relation(fields: [electionId], references: [id], onDelete: Cascade)
-
-  voter Person @relation(fields: [voterId], references: [id], onDelete: Cascade)
-
-  candidate Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
-
-  createdAt  DateTime  @default(now())
-  resident   Resident? @relation(fields: [residentId], references: [id])
+  election   Election  @relation(fields: [electionId], references: [id], onDelete: Cascade)
+  voter      Person    @relation(fields: [voterId], references: [id], onDelete: Cascade)
+  candidate  Candidate @relation(fields: [candidateId], references: [id], onDelete: Cascade)
   residentId String?
+
+  resident  Resident? @relation(fields: [residentId], references: [id])
+  createdAt DateTime  @default(now())
 
   @@unique([electionId, voterId])
   @@index([candidateId])
@@ -412,7 +868,7 @@ model Vote {
 }
 
 // ======================================================
-// AUDIT LOG
+// Audit Log
 // ======================================================
 
 model AuditLog {
@@ -432,13 +888,10 @@ model AuditLog {
 
   description String?
 
-  user User? @relation(fields: [userId], references: [id], onDelete: SetNull)
-
-  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
-
-  election Election? @relation(fields: [electionId], references: [id], onDelete: SetNull)
-
-  createdAt DateTime @default(now())
+  user      User?     @relation(fields: [userId], references: [id], onDelete: SetNull)
+  person    Person?   @relation(fields: [personId], references: [id], onDelete: SetNull)
+  election  Election? @relation(fields: [electionId], references: [id], onDelete: SetNull)
+  createdAt DateTime  @default(now())
 
   @@index([entity, entityId])
   @@index([userId])
@@ -447,60 +900,137 @@ model AuditLog {
 }
 
 // ======================================================
-// ENUMS
+// Enums
 // ======================================================
 
 enum UserRole {
   ADMIN
+
   MANAGER
+
   USER
 }
 
 enum UserStatus {
   ACTIVE
+
   INACTIVE
+
   BLOCKED
 }
 
 enum PersonStatus {
   ACTIVE
+
   INACTIVE
 }
 
 enum Gender {
   MALE
+
   FEMALE
+
   OTHER
 }
 
 enum PropertyType {
   LAND
+
   VILLA
+
   APARTMENT
+
   COMMERCIAL
 }
 
 enum PropertyStatus {
   VACANT
+
   BUILT
+
   UNDER_CONSTRUCTION
+
   INACTIVE
 }
 
 enum ResidencyType {
   OWNER
-  TENANT
-  FAMILY
-}
 
-enum ResidentType {
-  OWNER
   TENANT
+
+  FAMILY
 }
 
 enum ElectionStatus {
   DRAFT
+
   OPEN
+
   CLOSED
+
+  CANCELLED
+}
+
+enum ChargeType {
+  MONTHLY
+
+  QUARTERLY
+
+  ANNUAL
+
+  SPECIAL
+
+  UTILITY
+
+  OTHER
+}
+
+enum ChargeStatus {
+  ISSUED
+
+  PARTIALLY_PAID
+
+  PAID
+
+  CANCELLED
+}
+
+enum RecordStatus {
+  ACTIVE
+
+  INACTIVE
+}
+
+enum FundType {
+  OPERATING
+
+  CAPITAL
+}
+
+enum FinancialAccountType {
+  BANK
+
+  CASH
+
+  POS
+}
+
+enum AccountType {
+  ASSET
+
+  LIABILITY
+
+  EQUITY
+
+  REVENUE
+
+  EXPENSE
+}
+
+enum JournalEntryStatus {
+  DRAFT
+
+  POSTED
+
   CANCELLED
 }

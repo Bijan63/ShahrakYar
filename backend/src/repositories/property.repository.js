@@ -36,6 +36,12 @@ class PropertyRepository extends BaseRepository {
 
                 ownerships: {
 
+                    where: {
+
+                        endDate: null
+
+                    },
+
                     include: {
 
                         person: true
@@ -45,6 +51,12 @@ class PropertyRepository extends BaseRepository {
                 },
 
                 residencies: {
+
+                    where: {
+
+                        endDate: null
+
+                    },
 
                     include: {
 
@@ -81,6 +93,12 @@ class PropertyRepository extends BaseRepository {
 
                 ownerships: {
 
+                    where: {
+
+                        endDate: null
+
+                    },
+
                     include: {
 
                         person: true
@@ -90,6 +108,12 @@ class PropertyRepository extends BaseRepository {
                 },
 
                 residencies: {
+
+                    where: {
+
+                        endDate: null
+
+                    },
 
                     include: {
 
@@ -137,19 +161,48 @@ class PropertyRepository extends BaseRepository {
 
     async searchProperties(q) {
 
+        const searchQuery =
+            String(q || "").trim();
+
+
+        if (!searchQuery) {
+
+            return [];
+
+        }
+
+
         const propertyTypes = [
+
             "LAND",
             "VILLA",
             "APARTMENT",
             "COMMERCIAL"
+
         ];
 
 
         const searchPropertyType =
-            propertyTypes.includes(q.toUpperCase())
-                ? q.toUpperCase()
+            propertyTypes.includes(
+                searchQuery.toUpperCase()
+            )
+                ? searchQuery.toUpperCase()
                 : null;
 
+
+        // ---------------------
+        // Search person name
+        // ---------------------
+
+        const nameParts =
+            searchQuery
+                .split(/\s+/)
+                .filter(Boolean);
+
+
+        // ---------------------
+        // Search
+        // ---------------------
 
         return await this.model.findMany({
 
@@ -157,37 +210,62 @@ class PropertyRepository extends BaseRepository {
 
                 OR: [
 
+                    // Property code
                     {
+
                         code: {
-                            contains: q,
+
+                            contains: searchQuery,
+
                             mode: "insensitive"
+
                         }
+
                     },
 
+
+                    // Property description
                     {
+
                         description: {
-                            contains: q,
+
+                            contains: searchQuery,
+
                             mode: "insensitive"
+
                         }
+
                     },
 
-                    ...(searchPropertyType
-                        ? [
-                            {
-                                propertyType: {
-                                    equals: searchPropertyType
-                                }
-                            }
-                        ]
-                        : []
-                    ),
 
+                    // Property type
+                    ...(searchPropertyType
+
+                        ? [
+
+                            {
+
+                                propertyType: {
+
+                                    equals: searchPropertyType
+
+                                }
+
+                            }
+
+                        ]
+
+                        : []),
+
+
+                    // Complex name
                     {
+
                         complex: {
 
                             name: {
 
-                                contains: q,
+                                contains: searchQuery,
 
                                 mode: "insensitive"
 
@@ -197,44 +275,110 @@ class PropertyRepository extends BaseRepository {
 
                     },
 
+
+                    // Active ownership
                     {
+
                         ownerships: {
 
                             some: {
 
+                                endDate: null,
+
                                 person: {
 
-                                    OR: [
+                                    OR:
 
-                                        {
-                                            firstName: {
+                                        nameParts.length > 1
 
-                                                contains: q,
+                                            ? [
 
-                                                mode: "insensitive"
+                                                {
 
-                                            }
-                                        },
+                                                    AND: nameParts.map(
+                                                        (part) => ({
 
-                                        {
-                                            lastName: {
+                                                            OR: [
 
-                                                contains: q,
+                                                                {
 
-                                                mode: "insensitive"
+                                                                    firstName: {
 
-                                            }
-                                        },
+                                                                        contains:
+                                                                            part,
 
-                                        {
-                                            mobile: {
+                                                                        mode:
+                                                                            "insensitive"
 
-                                                contains: q
+                                                                    }
 
-                                            }
-                                        }
+                                                                },
 
-                                    ]
+                                                                {
+
+                                                                    lastName: {
+
+                                                                        contains:
+                                                                            part,
+
+                                                                        mode:
+                                                                            "insensitive"
+
+                                                                    }
+
+                                                                }
+
+                                                            ]
+
+                                                        })
+                                                    )
+
+                                                }
+
+                                            ]
+
+                                            : [
+
+                                                {
+
+                                                    firstName: {
+
+                                                        contains:
+                                                            searchQuery,
+
+                                                        mode:
+                                                            "insensitive"
+
+                                                    }
+
+                                                },
+
+                                                {
+
+                                                    lastName: {
+
+                                                        contains:
+                                                            searchQuery,
+
+                                                        mode:
+                                                            "insensitive"
+
+                                                    }
+
+                                                },
+
+                                                {
+
+                                                    mobile: {
+
+                                                        contains:
+                                                            searchQuery
+
+                                                    }
+
+                                                }
+
+                                            ]
 
                                 }
 
@@ -248,11 +392,18 @@ class PropertyRepository extends BaseRepository {
 
             },
 
+
             include: {
 
                 complex: true,
 
                 ownerships: {
+
+                    where: {
+
+                        endDate: null
+
+                    },
 
                     include: {
 
@@ -263,6 +414,12 @@ class PropertyRepository extends BaseRepository {
                 },
 
                 residencies: {
+
+                    where: {
+
+                        endDate: null
+
+                    },
 
                     include: {
 
@@ -299,6 +456,12 @@ class PropertyRepository extends BaseRepository {
 
                 ownerships: {
 
+                    where: {
+
+                        endDate: null
+
+                    },
+
                     include: {
 
                         person: true
@@ -308,6 +471,12 @@ class PropertyRepository extends BaseRepository {
                 },
 
                 residencies: {
+
+                    where: {
+
+                        endDate: null
+
+                    },
 
                     include: {
 
@@ -340,19 +509,25 @@ class PropertyRepository extends BaseRepository {
 
             include: {
 
-    complex: true,
+                complex: true,
 
-    ownerships: {
+                ownerships: {
 
-        include: {
+                    where: {
 
-            person: true
+                        endDate: null
 
-        }
+                    },
 
-    }
+                    include: {
 
-}
+                        person: true
+
+                    }
+
+                }
+
+            }
 
         });
 
@@ -375,7 +550,31 @@ class PropertyRepository extends BaseRepository {
 
             include: {
 
+                complex: true,
+
+                ownerships: {
+
+                    where: {
+
+                        endDate: null
+
+                    },
+
+                    include: {
+
+                        person: true
+
+                    }
+
+                },
+
                 residencies: {
+
+                    where: {
+
+                        endDate: null
+
+                    },
 
                     include: {
 

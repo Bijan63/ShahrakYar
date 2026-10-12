@@ -1,6 +1,8 @@
 const path = require("path");
 const express = require("express");
-
+const cors = require("cors");
+const propertyAddressRoutes =
+    require("./routes/propertyAddress.routes");
 const swaggerUi = require("swagger-ui-express");
 const swaggerSpec = require("./docs/swagger");
 
@@ -16,10 +18,18 @@ const voteRoutes = require("./routes/vote.routes");
 const dashboardRoutes = require("./routes/dashboard.routes");
 const complexRoutes = require("./routes/complex.routes");
 const residencyRoutes = require("./routes/residency.routes");
-
+const complexManagerRoutes =
+    require("./routes/complexManager.routes");
 const propertyRoutes = require("./routes/property.routes");
 const personRoutes = require("./routes/person.routes");
 const ownershipRoutes = require("./routes/ownership.routes");
+const unitAccountRoutes =
+    require("./routes/unitAccount.routes");
+const chargeRoutes =
+    require("./routes/charge.routes");
+const chargePaymentRoutes =
+    require("./routes/chargePayment.routes");
+
 // Error Middleware
 const errorHandler = require("./middleware/error.middleware");
 
@@ -28,6 +38,15 @@ const app = express();
 app.disable("x-powered-by");
 
 app.use(express.json());
+
+app.use(
+    cors({
+        origin: [
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ],
+    })
+);
 
 app.use(express.static(path.join(__dirname, "../public")));
 
@@ -40,7 +59,10 @@ app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 // ========================================
 // API Routes
 // ========================================
-
+app.use(
+    "/api/property-addresses",
+    propertyAddressRoutes
+);
 app.use("/api/auth", authRoutes);
 
 app.use("/api/users", userRoutes);
@@ -50,6 +72,11 @@ app.use("/api/buildings", buildingRoutes);
 app.use("/api/units", unitRoutes);
 
 app.use("/api/residents", residentRoutes);
+
+app.use(
+    "/api/complex-managers",
+    complexManagerRoutes
+);
 
 app.use("/api/elections", electionRoutes);
 
@@ -67,8 +94,18 @@ app.use(
     "/api/residencies",
     residencyRoutes
 );
-
-
+app.use(
+    "/api/unit-accounts",
+    unitAccountRoutes
+);
+app.use(
+    "/api/charges",
+    chargeRoutes
+);
+app.use(
+    "/api/charge-payments",
+    chargePaymentRoutes
+);
 // ========================================
 // Home Route
 // ========================================

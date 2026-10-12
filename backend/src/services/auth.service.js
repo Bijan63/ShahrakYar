@@ -55,6 +55,11 @@ class AuthService {
             throw new AppError("Invalid email or password.", 401);
         }
 
+        // Do not issue tokens to inactive or blocked accounts.
+        if (user.status !== "ACTIVE") {
+            throw new AppError("User is inactive or blocked.", 403);
+        }
+
         const token = jwt.sign(
             {
                 id: user.id,

@@ -8,7 +8,6 @@ const residentDTO = (resident) => {
 
         mobile: resident.mobile,
 
-        residentType: resident.residentType,
 
         userId: resident.userId,
 

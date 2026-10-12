@@ -1,20 +1,78 @@
 const AppError = require("../utils/AppError");
+const residencyRepository =
+    require("../repositories/residency.repository");
+const personRepository =
+    require("../repositories/person.repository");
+const propertyRepository =
+    require("../repositories/property.repository");
+const residencyMapper =
+    require("../mappers/residency.mapper");
+const accessService =
+    require("./access.service");
 
-const residencyRepository = require("../repositories/residency.repository");
 
-const personRepository = require("../repositories/person.repository");
+// =====================
+// Residency Types
+// =====================
 
-const propertyRepository = require("../repositories/property.repository");
+const VALID_RESIDENCY_TYPES = [
+    "OWNER",
+    "TENANT",
+    "FAMILY"
+];
 
-const residencyMapper = require("../mappers/residency.mapper");
 
-const prisma = require("../config/prisma");
+// =====================
+// Date Helpers
+// =====================
+
+const parseDate = (value, fieldName) => {
+
+    const parsedDate = new Date(value);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+
+        throw new AppError(
+            `Invalid ${fieldName}.`,
+            400
+        );
+
+    }
+
+    return parsedDate;
+
+};
+
+
+const validateDateRange = (
+    startDate,
+    endDate
+) => {
+
+    if (
+        startDate &&
+        endDate &&
+        endDate <= startDate
+    ) {
+
+        throw new AppError(
+            "endDate must be later than startDate.",
+            400
+        );
+
+    }
+
+};
+
 
 // =====================
 // Create Residency
 // =====================
 
-const createResidency = async (data) => {
+const createResidency = async (
+    user,
+    data = {}
+) => {
 
     const {
         propertyId,
@@ -29,7 +87,11 @@ const createResidency = async (data) => {
     // Required fields
     // ---------------------
 
-    if (!propertyId || !personId || !type) {
+    if (
+        !propertyId ||
+        !personId ||
+        !type
+    ) {
 
         throw new AppError(
             "propertyId, personId and type are required.",
@@ -40,11 +102,27 @@ const createResidency = async (data) => {
 
 
     // ---------------------
-    // Check Property
+    // Validate Type
+    // ---------------------
+
+    if (!VALID_RESIDENCY_TYPES.includes(type)) {
+
+        throw new AppError(
+            "Invalid residency type.",
+            400
+        );
+
+    }
+
+
+    // ---------------------
+    // Check Property + Access
     // ---------------------
 
     const property =
-        await propertyRepository.findById(propertyId);
+        await propertyRepository.findById(
+            propertyId
+        );
 
 
     if (!property) {
@@ -57,12 +135,20 @@ const createResidency = async (data) => {
     }
 
 
+    await accessService.requireComplexAccess(
+        user,
+        property.complexId
+    );
+
+
     // ---------------------
     // Check Person
     // ---------------------
 
     const person =
-        await personRepository.getPersonById(personId);
+        await personRepository.getPersonById(
+            personId
+        );
 
 
     if (!person) {
@@ -76,29 +162,107 @@ const createResidency = async (data) => {
 
 
     // ---------------------
-    // Check duplicate active residency
+    // Prepare Data
     // ---------------------
 
-    const existingResidency =
-        await prisma.residency.findFirst({
+    const residencyData = {
+        propertyId,
+        personId,
+        type
+    };
 
-            where: {
 
-                propertyId,
+    // ---------------------
+    // Start Date
+    // ---------------------
 
-                personId,
+    let parsedStartDate;
 
-                endDate: null
 
-            }
+    if (startDate !== undefined) {
 
+        parsedStartDate =
+            parseDate(
+                startDate,
+                "startDate"
+            );
+
+        residencyData.startDate =
+            parsedStartDate;
+
+    } else {
+
+        // Prisma may provide the persisted default.
+        // We still use now() for overlap validation.
+        parsedStartDate = new Date();
+
+    }
+
+
+    // ---------------------
+    // End Date
+    // ---------------------
+
+    let parsedEndDate = null;
+
+
+    if (endDate !== undefined) {
+
+        if (endDate === null) {
+
+            parsedEndDate = null;
+            residencyData.endDate = null;
+
+        } else {
+
+            parsedEndDate =
+                parseDate(
+                    endDate,
+                    "endDate"
+                );
+
+            residencyData.endDate =
+                parsedEndDate;
+
+        }
+
+    }
+
+
+    validateDateRange(
+        parsedStartDate,
+        parsedEndDate
+    );
+
+
+    // ---------------------
+    // Person Residency Overlap
+    // ---------------------
+
+    const overlappingResidency =
+        await residencyRepository.findOverlappingResidency({
+            id: null,
+            propertyId,
+            personId,
+            startDate: parsedStartDate,
+            endDate: parsedEndDate,
+            complexIds: [property.complexId]
         });
 
 
-    if (existingResidency) {
+    if (overlappingResidency) {
+
+        if (overlappingResidency.endDate === null) {
+
+            throw new AppError(
+                "This person already has an active residency for this property.",
+                409
+            );
+
+        }
 
         throw new AppError(
-            "This person already has an active residency for this property.",
+            "This residency period overlaps with an existing residency for this property and person.",
             409
         );
 
@@ -106,78 +270,38 @@ const createResidency = async (data) => {
 
 
     // ---------------------
-    // Prepare data
+    // Tenant Overlap
     // ---------------------
 
-    const residencyData = {
+    if (type === "TENANT") {
 
-        propertyId,
-
-        personId,
-
-        type
-
-    };
-
-
-    if (startDate) {
-
-        const parsedStartDate =
-            new Date(startDate);
+        const overlappingTenant =
+            await residencyRepository.findOverlappingTenant({
+                id: null,
+                propertyId,
+                startDate: parsedStartDate,
+                endDate: parsedEndDate,
+                complexIds: [property.complexId]
+            });
 
 
-        if (Number.isNaN(parsedStartDate.getTime())) {
+        if (overlappingTenant) {
+
+            if (overlappingTenant.endDate === null) {
+
+                throw new AppError(
+                    "This property already has an active tenant.",
+                    409
+                );
+
+            }
 
             throw new AppError(
-                "Invalid startDate.",
-                400
+                "This tenant residency period overlaps with another tenant for this property.",
+                409
             );
 
         }
-
-
-        residencyData.startDate =
-            parsedStartDate;
-
-    }
-
-
-    if (endDate) {
-
-        const parsedEndDate =
-            new Date(endDate);
-
-
-        if (Number.isNaN(parsedEndDate.getTime())) {
-
-            throw new AppError(
-                "Invalid endDate.",
-                400
-            );
-
-        }
-
-
-        residencyData.endDate =
-            parsedEndDate;
-
-    }
-
-
-    // ---------------------
-    // Validate date range
-    // ---------------------
-
-    if (
-        residencyData.startDate &&
-        residencyData.endDate &&
-        residencyData.endDate < residencyData.startDate
-    ) {
-
-        throw new AppError(
-            "endDate cannot be earlier than startDate.",
-            400
-        );
 
     }
 
@@ -192,7 +316,9 @@ const createResidency = async (data) => {
         );
 
 
-    return residencyMapper.toResponse(residency);
+    return residencyMapper.toResponse(
+        residency
+    );
 
 };
 
@@ -201,10 +327,17 @@ const createResidency = async (data) => {
 // Get All Residencies
 // =====================
 
-const getResidencies = async () => {
+const getResidencies = async (user) => {
+
+    const complexIds =
+        await accessService.getAccessibleComplexIds(
+            user
+        );
 
     const residencies =
-        await residencyRepository.getResidencies();
+        await residencyRepository.getResidencies(
+            complexIds
+        );
 
 
     return residencies.map(
@@ -218,20 +351,36 @@ const getResidencies = async () => {
 // Get Residency By ID
 // =====================
 
-const getResidencyById = async (id) => {
+const getResidencyById = async (
+    user,
+    id
+) => {
+
+    const complexIds =
+        await accessService.getAccessibleComplexIds(
+            user
+        );
 
     const residency =
-        await residencyRepository.getResidencyById(id);
+        await residencyRepository.getResidencyById(
+            id,
+            complexIds
+        );
 
 
     if (!residency) {
 
-        return null;
+        throw new AppError(
+            "Residency not found.",
+            404
+        );
 
     }
 
 
-    return residencyMapper.toResponse(residency);
+    return residencyMapper.toResponse(
+        residency
+    );
 
 };
 
@@ -240,10 +389,44 @@ const getResidencyById = async (id) => {
 // Update Residency
 // =====================
 
-const updateResidency = async (id, data) => {
+const updateResidency = async (
+    user,
+    id,
+    data = {}
+) => {
+
+    if (!id) {
+
+        throw new AppError(
+            "id is required.",
+            400
+        );
+
+    }
+
+
+    if (
+        !data ||
+        Object.keys(data).length === 0
+    ) {
+
+        throw new AppError(
+            "Residency update data is required.",
+            400
+        );
+
+    }
+
+    const complexIds =
+        await accessService.getAccessibleComplexIds(
+            user
+        );
 
     const existingResidency =
-        await residencyRepository.getResidencyById(id);
+        await residencyRepository.getResidencyById(
+            id,
+            complexIds
+        );
 
 
     if (!existingResidency) {
@@ -257,18 +440,50 @@ const updateResidency = async (id, data) => {
 
 
     // ---------------------
-    // Validate Property
+    // Validate Type
     // ---------------------
 
-    if (data.propertyId) {
+    if (
+        data.type !== undefined &&
+        !VALID_RESIDENCY_TYPES.includes(
+            data.type
+        )
+    ) {
 
-        const property =
+        throw new AppError(
+            "Invalid residency type.",
+            400
+        );
+
+    }
+
+
+    // ---------------------
+    // Effective Property
+    // ---------------------
+
+    let effectiveProperty =
+        existingResidency.property;
+
+
+    if (data.propertyId !== undefined) {
+
+        if (!data.propertyId) {
+
+            throw new AppError(
+                "propertyId cannot be empty.",
+                400
+            );
+
+        }
+
+        effectiveProperty =
             await propertyRepository.findById(
                 data.propertyId
             );
 
 
-        if (!property) {
+        if (!effectiveProperty) {
 
             throw new AppError(
                 "Property not found.",
@@ -277,6 +492,12 @@ const updateResidency = async (id, data) => {
 
         }
 
+
+        await accessService.requireComplexAccess(
+            user,
+            effectiveProperty.complexId
+        );
+
     }
 
 
@@ -284,7 +505,22 @@ const updateResidency = async (id, data) => {
     // Validate Person
     // ---------------------
 
-    if (data.personId) {
+    const effectivePersonId =
+        data.personId !== undefined
+            ? data.personId
+            : existingResidency.personId;
+
+
+    if (data.personId !== undefined) {
+
+        if (!data.personId) {
+
+            throw new AppError(
+                "personId cannot be empty.",
+                400
+            );
+
+        }
 
         const person =
             await personRepository.getPersonById(
@@ -305,133 +541,174 @@ const updateResidency = async (id, data) => {
 
 
     // ---------------------
-    // Validate startDate
+    // Prepare Update Data
     // ---------------------
 
-    if (data.startDate) {
-
-        const parsedStartDate =
-            new Date(data.startDate);
+    const updateData = {};
 
 
-        if (Number.isNaN(parsedStartDate.getTime())) {
+    if (data.propertyId !== undefined) {
+        updateData.propertyId = data.propertyId;
+    }
+
+    if (data.personId !== undefined) {
+        updateData.personId = data.personId;
+    }
+
+    if (data.type !== undefined) {
+        updateData.type = data.type;
+    }
+
+
+    // ---------------------
+    // Validate Start Date
+    // ---------------------
+
+    let parsedStartDate;
+
+
+    if (data.startDate !== undefined) {
+
+        if (data.startDate === null) {
 
             throw new AppError(
-                "Invalid startDate.",
+                "startDate cannot be null.",
                 400
             );
 
         }
 
+        parsedStartDate =
+            parseDate(
+                data.startDate,
+                "startDate"
+            );
 
-        data.startDate =
+        updateData.startDate =
             parsedStartDate;
 
+    } else {
+
+        parsedStartDate =
+            existingResidency.startDate;
+
     }
 
 
     // ---------------------
-    // Validate endDate
+    // Validate End Date
     // ---------------------
 
-    if (data.endDate) {
-
-        const parsedEndDate =
-            new Date(data.endDate);
+    let parsedEndDate;
 
 
-        if (Number.isNaN(parsedEndDate.getTime())) {
+    if (data.endDate !== undefined) {
+
+        if (data.endDate === null) {
+
+            parsedEndDate = null;
+            updateData.endDate = null;
+
+        } else {
+
+            parsedEndDate =
+                parseDate(
+                    data.endDate,
+                    "endDate"
+                );
+
+            updateData.endDate =
+                parsedEndDate;
+
+        }
+
+    } else {
+
+        parsedEndDate =
+            existingResidency.endDate;
+
+    }
+
+
+    validateDateRange(
+        parsedStartDate,
+        parsedEndDate
+    );
+
+
+    // ---------------------
+    // Effective Type
+    // ---------------------
+
+    const effectiveType =
+        data.type !== undefined
+            ? data.type
+            : existingResidency.type;
+
+
+    // ---------------------
+    // Person Residency Overlap
+    // ---------------------
+
+    const overlappingResidency =
+        await residencyRepository.findOverlappingResidency({
+            id,
+            propertyId: effectiveProperty.id,
+            personId: effectivePersonId,
+            startDate: parsedStartDate,
+            endDate: parsedEndDate,
+            complexIds: [effectiveProperty.complexId]
+        });
+
+
+    if (overlappingResidency) {
+
+        if (overlappingResidency.endDate === null) {
 
             throw new AppError(
-                "Invalid endDate.",
-                400
+                "This person already has another active residency for this property.",
+                409
             );
 
         }
 
-
-        data.endDate =
-            parsedEndDate;
-
-    }
-
-
-    // ---------------------
-    // Validate date range
-    // ---------------------
-
-    const effectiveStartDate =
-        data.startDate ||
-        existingResidency.startDate;
-
-
-    const effectiveEndDate =
-        data.endDate ||
-        existingResidency.endDate;
-
-
-    if (
-        effectiveStartDate &&
-        effectiveEndDate &&
-        effectiveEndDate < effectiveStartDate
-    ) {
-
         throw new AppError(
-            "endDate cannot be earlier than startDate.",
-            400
+            "This residency period overlaps with another residency for this property and person.",
+            409
         );
 
     }
 
 
     // ---------------------
-    // Check duplicate active residency
+    // Tenant Overlap
     // ---------------------
 
-    const propertyId =
-        data.propertyId ||
-        existingResidency.propertyId;
+    if (effectiveType === "TENANT") {
 
-
-    const personId =
-        data.personId ||
-        existingResidency.personId;
-
-
-    const endDate =
-        data.endDate !== undefined
-            ? data.endDate
-            : existingResidency.endDate;
-
-
-    if (endDate === null) {
-
-        const duplicateResidency =
-            await prisma.residency.findFirst({
-
-                where: {
-
-                    propertyId,
-
-                    personId,
-
-                    endDate: null,
-
-                    NOT: {
-
-                        id
-
-                    }
-
-                }
-
+        const overlappingTenant =
+            await residencyRepository.findOverlappingTenant({
+                id,
+                propertyId: effectiveProperty.id,
+                startDate: parsedStartDate,
+                endDate: parsedEndDate,
+                complexIds: [effectiveProperty.complexId]
             });
 
 
-        if (duplicateResidency) {
+        if (overlappingTenant) {
+
+            if (overlappingTenant.endDate === null) {
+
+                throw new AppError(
+                    "This property already has an active tenant.",
+                    409
+                );
+
+            }
 
             throw new AppError(
-                "This person already has another active residency for this property.",
+                "This tenant residency period overlaps with another tenant for this property.",
                 409
             );
 
@@ -447,11 +724,13 @@ const updateResidency = async (id, data) => {
     const residency =
         await residencyRepository.updateResidency(
             id,
-            data
+            updateData
         );
 
 
-    return residencyMapper.toResponse(residency);
+    return residencyMapper.toResponse(
+        residency
+    );
 
 };
 
@@ -460,10 +739,21 @@ const updateResidency = async (id, data) => {
 // Delete Residency
 // =====================
 
-const deleteResidency = async (id) => {
+const deleteResidency = async (
+    user,
+    id
+) => {
+
+    const complexIds =
+        await accessService.getAccessibleComplexIds(
+            user
+        );
 
     const existingResidency =
-        await residencyRepository.getResidencyById(id);
+        await residencyRepository.getResidencyById(
+            id,
+            complexIds
+        );
 
 
     if (!existingResidency) {
@@ -476,19 +766,26 @@ const deleteResidency = async (id) => {
     }
 
 
-    return await residencyRepository.deleteResidency(id);
+    return residencyRepository.deleteResidency(
+        id
+    );
 
 };
 
 
 // =====================
-// Get Residents By Property
+// Get Active Residents By Property
 // =====================
 
-const getResidentsByProperty = async (propertyId) => {
+const getResidentsByProperty = async (
+    user,
+    propertyId
+) => {
 
     const property =
-        await propertyRepository.findById(propertyId);
+        await propertyRepository.findById(
+            propertyId
+        );
 
 
     if (!property) {
@@ -501,9 +798,16 @@ const getResidentsByProperty = async (propertyId) => {
     }
 
 
+    await accessService.requireComplexAccess(
+        user,
+        property.complexId
+    );
+
+
     const residencies =
         await residencyRepository.getResidentsByProperty(
-            propertyId
+            propertyId,
+            [property.complexId]
         );
 
 
@@ -514,18 +818,15 @@ const getResidentsByProperty = async (propertyId) => {
 };
 
 
+// =====================
+// Export
+// =====================
+
 module.exports = {
-
     createResidency,
-
     getResidencies,
-
     getResidencyById,
-
     updateResidency,
-
     deleteResidency,
-
     getResidentsByProperty
-
 };

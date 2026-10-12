@@ -1,18 +1,29 @@
-const ownershipService = require("../services/ownership.service");
+const ownershipService =
+    require("../services/ownership.service");
 
-const ResponseHelper = require("../helpers/response.helper");
+const ResponseHelper =
+    require("../helpers/response.helper");
 
-const ownershipMapper = require("../mappers/ownership.mapper");
+const ownershipMapper =
+    require("../mappers/ownership.mapper");
 
 
+// =====================================================
 // Create Ownership
-const createOwnership = async (req, res, next) => {
+// =====================================================
+
+const createOwnership = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const ownership =
             await ownershipService.createOwnership(
-                req.body
+                req.body,
+                req.user
             );
 
 
@@ -22,7 +33,6 @@ const createOwnership = async (req, res, next) => {
             ownershipMapper(ownership)
         );
 
-
     } catch (error) {
 
         next(error);
@@ -32,14 +42,22 @@ const createOwnership = async (req, res, next) => {
 };
 
 
-
+// =====================================================
 // Get All Ownerships
-const getOwnerships = async (req, res, next) => {
+// =====================================================
+
+const getOwnerships = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const ownerships =
-            await ownershipService.getOwnerships();
+            await ownershipService.getOwnerships(
+                req.user
+            );
 
 
         ResponseHelper.success(
@@ -48,7 +66,6 @@ const getOwnerships = async (req, res, next) => {
             ownerships.map(ownershipMapper)
         );
 
-
     } catch (error) {
 
         next(error);
@@ -58,15 +75,22 @@ const getOwnerships = async (req, res, next) => {
 };
 
 
-
+// =====================================================
 // Get Ownership By ID
-const getOwnershipById = async (req, res, next) => {
+// =====================================================
+
+const getOwnershipById = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const ownership =
             await ownershipService.getOwnershipById(
-                req.params.id
+                req.params.id,
+                req.user
             );
 
 
@@ -76,7 +100,6 @@ const getOwnershipById = async (req, res, next) => {
             ownershipMapper(ownership)
         );
 
-
     } catch (error) {
 
         next(error);
@@ -86,16 +109,23 @@ const getOwnershipById = async (req, res, next) => {
 };
 
 
-
+// =====================================================
 // Update Ownership
-const updateOwnership = async (req, res, next) => {
+// =====================================================
+
+const updateOwnership = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const ownership =
             await ownershipService.updateOwnership(
                 req.params.id,
-                req.body
+                req.body,
+                req.user
             );
 
 
@@ -105,7 +135,6 @@ const updateOwnership = async (req, res, next) => {
             ownershipMapper(ownership)
         );
 
-
     } catch (error) {
 
         next(error);
@@ -115,14 +144,21 @@ const updateOwnership = async (req, res, next) => {
 };
 
 
-
+// =====================================================
 // Delete Ownership
-const deleteOwnership = async (req, res, next) => {
+// =====================================================
+
+const deleteOwnership = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         await ownershipService.deleteOwnership(
-            req.params.id
+            req.params.id,
+            req.user
         );
 
 
@@ -131,6 +167,46 @@ const deleteOwnership = async (req, res, next) => {
             "Ownership deleted successfully"
         );
 
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
+
+// =====================================================
+// Get Ownership History
+// =====================================================
+
+const getOwnershipHistory = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const {
+            from,
+            to
+        } = req.query;
+
+
+        const ownerships =
+            await ownershipService.getOwnershipHistory(
+                from,
+                to,
+                req.user
+            );
+
+
+        ResponseHelper.success(
+            res,
+            "Ownership history fetched successfully",
+            ownerships.map(ownershipMapper)
+        );
 
     } catch (error) {
 
@@ -141,6 +217,50 @@ const deleteOwnership = async (req, res, next) => {
 };
 
 
+// =====================================================
+// Get Ownership Changes
+// =====================================================
+
+const getOwnershipChanges = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const {
+            from,
+            to
+        } = req.query;
+
+
+        const ownershipChanges =
+            await ownershipService.getOwnershipChanges(
+                from,
+                to,
+                req.user
+            );
+
+
+        ResponseHelper.success(
+            res,
+            "Ownership changes fetched successfully",
+            ownershipChanges
+        );
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
+
+// =====================================================
+// Module Exports
+// =====================================================
 
 module.exports = {
 
@@ -152,6 +272,10 @@ module.exports = {
 
     updateOwnership,
 
-    deleteOwnership
+    deleteOwnership,
+
+    getOwnershipHistory,
+
+    getOwnershipChanges
 
 };

@@ -3,6 +3,8 @@ const express = require("express");
 const router = express.Router();
 
 const personController = require("../controllers/person.controller");
+const verifyToken = require("../middleware/auth.middleware");
+const authorize = require("../middleware/role.middleware");
 
 /**
  * @swagger
@@ -53,6 +55,8 @@ const personController = require("../controllers/person.controller");
  */
 router.post(
     "/",
+    verifyToken,
+    authorize("ADMIN"),
     personController.createPerson
 );
 
@@ -68,6 +72,8 @@ router.post(
  */
 router.get(
     "/",
+    verifyToken,
+    authorize("ADMIN"),
     personController.getPersons
 );
 
@@ -93,6 +99,8 @@ router.get(
  */
 router.get(
     "/:id/residencies",
+    verifyToken,
+    authorize("ADMIN"),
     personController.getPersonResidencies
 );
 
@@ -118,6 +126,8 @@ router.get(
  */
 router.get(
     "/:id/properties",
+    verifyToken,
+    authorize("ADMIN"),
     personController.getPersonProperties
 );
 
@@ -143,6 +153,8 @@ router.get(
  */
 router.get(
     "/:id",
+    verifyToken,
+    authorize("ADMIN"),
     personController.getPersonById
 );
 
@@ -191,6 +203,8 @@ router.get(
  */
 router.put(
     "/:id",
+    verifyToken,
+    authorize("ADMIN"),
     personController.updatePerson
 );
 
@@ -216,6 +230,8 @@ router.put(
  */
 router.delete(
     "/:id",
+    verifyToken,
+    authorize("ADMIN"),
     personController.deletePerson
 );
 

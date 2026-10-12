@@ -1,5 +1,7 @@
+const AppError = require("../utils/AppError");
 
-const personRepository = require("../repositories/person.repository");
+const personRepository =
+    require("../repositories/person.repository");
 
 
 // =========================
@@ -8,7 +10,69 @@ const personRepository = require("../repositories/person.repository");
 
 const createPerson = async (data) => {
 
-    return await personRepository.createPerson(data);
+    // =========================
+    // Validate Required Fields
+    // =========================
+
+    if (!data.firstName) {
+
+        throw new AppError(
+            "firstName is required.",
+            400
+        );
+
+    }
+
+    if (!data.lastName) {
+
+        throw new AppError(
+            "lastName is required.",
+            400
+        );
+
+    }
+
+    if (!data.mobile) {
+
+        throw new AppError(
+            "mobile is required.",
+            400
+        );
+
+    }
+
+
+    // =========================
+    // Check Duplicate National ID
+    // =========================
+
+    if (data.nationalId) {
+
+        const existingPerson =
+            await personRepository.getPersonByNationalId(
+                data.nationalId
+            );
+
+
+        if (existingPerson) {
+
+            throw new AppError(
+                "Person with this nationalId already exists.",
+                409
+            );
+
+        }
+
+    }
+
+
+    // =========================
+    // Create
+    // =========================
+
+    return await personRepository.createPerson(
+        data
+    );
 
 };
 
@@ -30,7 +94,21 @@ const getPersons = async () => {
 
 const getPersonById = async (id) => {
 
-    return await personRepository.getPersonById(id);
+    const person =
+        await personRepository.getPersonById(id);
+
+
+    if (!person) {
+
+        throw new AppError(
+            "Person not found.",
+            404
+        );
+
+    }
+
+
+    return person;
 
 };
 
@@ -39,7 +117,106 @@ const getPersonById = async (id) => {
 // Update Person
 // =========================
 
-const updatePerson = async (id, data) => {
+const updatePerson = async (
+    id,
+    data
+) => {
+
+    // =========================
+    // Check Person
+    // =========================
+
+    const existingPerson =
+        await personRepository.getPersonById(id);
+
+
+    if (!existingPerson) {
+
+        throw new AppError(
+            "Person not found.",
+            404
+        );
+
+    }
+
+
+    // =========================
+    // Validate Required Fields
+    // =========================
+
+    if (
+        data.firstName !== undefined &&
+        !data.firstName
+    ) {
+
+        throw new AppError(
+            "firstName cannot be empty.",
+            400
+        );
+
+    }
+
+
+    if (
+        data.lastName !== undefined &&
+        !data.lastName
+    ) {
+
+        throw new AppError(
+            "lastName cannot be empty.",
+            400
+        );
+
+    }
+
+
+    if (
+        data.mobile !== undefined &&
+        !data.mobile
+    ) {
+
+        throw new AppError(
+            "mobile cannot be empty.",
+            400
+        );
+
+    }
+
+
+    // =========================
+    // Check Duplicate National ID
+    // =========================
+
+    if (
+        data.nationalId !== undefined &&
+        data.nationalId !== null &&
+        data.nationalId !== existingPerson.nationalId
+    ) {
+
+        const duplicatePerson =
+            await personRepository.getPersonByNationalId(
+                data.nationalId
+            );
+
+
+        if (
+            duplicatePerson &&
+            duplicatePerson.id !== id
+        ) {
+
+            throw new AppError(
+                "Person with this nationalId already exists.",
+                409
+            );
+
+        }
+
+    }
+
+
+    // =========================
+    // Update
+    // =========================
 
     return await personRepository.updatePerson(
         id,
@@ -55,7 +232,31 @@ const updatePerson = async (id, data) => {
 
 const deletePerson = async (id) => {
 
-    return await personRepository.deletePerson(id);
+    // =========================
+    // Check Person
+    // =========================
+
+    const existingPerson =
+        await personRepository.getPersonById(id);
+
+
+    if (!existingPerson) {
+
+        throw new AppError(
+            "Person not found.",
+            404
+        );
+
+    }
+
+
+    // =========================
+    // Delete
+    // =========================
+
+    return await personRepository.deletePerson(
+        id
+    );
 
 };
 
@@ -66,7 +267,23 @@ const deletePerson = async (id) => {
 
 const getPersonProperties = async (id) => {
 
-    return await personRepository.getPersonProperties(id);
+    const person =
+        await personRepository.getPersonProperties(
+            id
+        );
+
+
+    if (!person) {
+
+        throw new AppError(
+            "Person not found.",
+            404
+        );
+
+    }
+
+
+    return person;
 
 };
 
@@ -77,7 +294,23 @@ const getPersonProperties = async (id) => {
 
 const getPersonResidencies = async (id) => {
 
-    return await personRepository.getPersonResidencies(id);
+    const person =
+        await personRepository.getPersonResidencies(
+            id
+        );
+
+
+    if (!person) {
+
+        throw new AppError(
+            "Person not found.",
+            404
+        );
+
+    }
+
+
+    return person;
 
 };
 

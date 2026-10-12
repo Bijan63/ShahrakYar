@@ -1,9 +1,9 @@
 const prisma = require("../config/prisma");
 
 
-// =====================
+// ======================================================
 // Create Building
-// =====================
+// ======================================================
 
 const createBuilding = async (data) => {
 
@@ -23,7 +23,19 @@ const createBuilding = async (data) => {
 
         include: {
 
-            complex: true
+            complex: true,
+
+            units: {
+
+                include: {
+
+                    property: true,
+
+                    residents: true
+
+                }
+
+            }
 
         }
 
@@ -32,9 +44,9 @@ const createBuilding = async (data) => {
 };
 
 
-// =====================
+// ======================================================
 // Get All Buildings
-// =====================
+// ======================================================
 
 const getBuildings = async () => {
 
@@ -42,7 +54,19 @@ const getBuildings = async () => {
 
         include: {
 
-            complex: true
+            complex: true,
+
+            units: {
+
+                include: {
+
+                    property: true,
+
+                    residents: true
+
+                }
+
+            }
 
         },
 
@@ -57,9 +81,9 @@ const getBuildings = async () => {
 };
 
 
-// =====================
+// ======================================================
 // Get Building By ID
-// =====================
+// ======================================================
 
 const getBuildingById = async (id) => {
 
@@ -75,7 +99,17 @@ const getBuildingById = async (id) => {
 
             complex: true,
 
-            residents: true
+            units: {
+
+                include: {
+
+                    property: true,
+
+                    residents: true
+
+                }
+
+            }
 
         }
 
@@ -84,9 +118,9 @@ const getBuildingById = async (id) => {
 };
 
 
-// =====================
+// ======================================================
 // Update Building
-// =====================
+// ======================================================
 
 const updateBuilding = async (id, data) => {
 
@@ -110,7 +144,19 @@ const updateBuilding = async (id, data) => {
 
         include: {
 
-            complex: true
+            complex: true,
+
+            units: {
+
+                include: {
+
+                    property: true,
+
+                    residents: true
+
+                }
+
+            }
 
         }
 
@@ -119,9 +165,9 @@ const updateBuilding = async (id, data) => {
 };
 
 
-// =====================
+// ======================================================
 // Delete Building
-// =====================
+// ======================================================
 
 const deleteBuilding = async (id) => {
 
@@ -137,6 +183,10 @@ const deleteBuilding = async (id) => {
 
 };
 
+
+// ======================================================
+// Export
+// ======================================================
 
 module.exports = {
 

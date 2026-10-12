@@ -1,13 +1,20 @@
 const AppError = require("../utils/AppError");
 
-const complexRepository = require("../repositories/complex.repository");
+const complexRepository =
+    require("../repositories/complex.repository");
+
+const complexManagerRepository =
+    require("../repositories/complexManager.repository");
+
+const accessService =
+    require("./access.service");
 
 
 class ComplexService {
 
-    // =====================
+    // ==================================================
     // Create Complex
-    // =====================
+    // ==================================================
 
     async createComplex(data) {
 
@@ -41,22 +48,88 @@ class ComplexService {
     }
 
 
-    // =====================
-    // Get All Complexes
-    // =====================
+    // ==================================================
+    // Get All Accessible Complexes
+    // ==================================================
 
-    async getComplexes() {
+    async getComplexes(user) {
 
-        return complexRepository.findAll();
+        const accessibleComplexIds =
+            await accessService
+                .getAccessibleComplexIds(user);
+
+
+        // ------------------------------------------
+        // ADMIN
+        // ------------------------------------------
+
+        if (accessibleComplexIds === null) {
+
+            return complexRepository.findAll();
+
+        }
+
+
+        // ------------------------------------------
+        // USER
+        // ------------------------------------------
+
+        if (
+            accessibleComplexIds.length === 0
+        ) {
+
+            return [];
+
+        }
+
+
+        // ------------------------------------------
+        // MANAGER
+        // ------------------------------------------
+
+        const assignments =
+            await Promise.all(
+
+                accessibleComplexIds.map(
+                    async (complexId) => {
+
+                        return complexRepository
+                            .findById(complexId);
+
+                    }
+                )
+
+            );
+
+
+        return assignments.filter(Boolean);
 
     }
 
 
-    // =====================
+    // ==================================================
     // Get Complex By ID
-    // =====================
+    // ==================================================
 
-    async getComplexById(id) {
+    async getComplexById(
+        id,
+        user
+    ) {
+
+        // ------------------------------------------
+        // Check Complex-level access
+        // ------------------------------------------
+
+        await accessService
+            .requireComplexAccess(
+                user,
+                id
+            );
+
+
+        // ------------------------------------------
+        // Fetch Complex
+        // ------------------------------------------
 
         const complex =
             await complexRepository.findById(id);
@@ -77,14 +150,18 @@ class ComplexService {
     }
 
 
-    // =====================
+    // ==================================================
     // Update Complex
-    // =====================
+    // ==================================================
 
-    async updateComplex(id, data) {
+    async updateComplex(
+        id,
+        data,
+
+    ) {
 
         const complex =
-            await complexRepository.findById(id);
+        await complexRepository.findById(id);
 
 
         if (!complex) {
@@ -105,14 +182,13 @@ class ComplexService {
     }
 
 
-    // =====================
-    // Delete Complex
-    // =====================
-
-    async deleteComplex(id) {
+    async deleteComplex(
+        id,
+        user
+    ) {
 
         const complex =
-            await complexRepository.findById(id);
+        await complexRepository.findById(id);
 
 
         if (!complex) {
@@ -125,7 +201,40 @@ class ComplexService {
         }
 
 
+        await accessService.requireComplexAccess(
+            user,
+            id
+        );
+
+
         return complexRepository.delete(id);
+
+    }
+
+    // ==================================================
+    // Get Managers Of Complex
+    // ==================================================
+
+    async getManagers(complexId) {
+
+        const complex =
+            await complexRepository.findById(
+                complexId
+            );
+
+
+        if (!complex) {
+
+            throw new AppError(
+                "Complex not found.",
+                404
+            );
+
+        }
+
+
+        return complexManagerRepository
+            .findByComplexId(complexId);
 
     }
 

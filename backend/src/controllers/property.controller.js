@@ -1,23 +1,38 @@
-const propertyService = require("../services/property.service");
+const propertyService =
+    require("../services/property.service");
+
 const {
     propertyMapper
 } = require("../mappers/property.mapper");
-const ResponseHelper = require("../helpers/response.helper");
-const propertyDTO = require("../dto/property.dto");
+
+const ResponseHelper =
+    require("../helpers/response.helper");
+
+
+// ==================================================
 // Create Property
-const createProperty = async (req, res, next) => {
+// ==================================================
+
+const createProperty = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-        const property = await propertyService.createProperty(
-            req.body
-        );
+        const property =
+            await propertyService.createProperty(
+                req.body,
+                req.user
+            );
 
-       ResponseHelper.created(
-    res,
-    "Property created successfully",
-    property
-);
+
+        ResponseHelper.created(
+            res,
+            "Property created successfully",
+            property
+        );
 
     } catch (error) {
 
@@ -28,12 +43,22 @@ const createProperty = async (req, res, next) => {
 };
 
 
+// ==================================================
 // Get All Properties
-const getProperties = async (req, res, next) => {
+// ==================================================
+
+const getProperties = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-        const properties = await propertyService.getProperties();
+        const properties =
+            await propertyService.getProperties(
+                req.user
+            );
 
 
         ResponseHelper.success(
@@ -42,7 +67,6 @@ const getProperties = async (req, res, next) => {
             properties.map(propertyMapper)
         );
 
-
     } catch (error) {
 
         next(error);
@@ -52,45 +76,30 @@ const getProperties = async (req, res, next) => {
 };
 
 
+// ==================================================
 // Get Property By ID
-const getPropertyById = async (req, res, next) => {
+// ==================================================
 
-    try {
-
-        const property = await propertyService.getPropertyById(
-            req.params.id
-        );
-
-       ResponseHelper.success(
+const getPropertyById = async (
+    req,
     res,
-    "Property fetched successfully",
-    propertyDTO(property)
-);
-
-    } catch (error) {
-
-        next(error);
-
-    }
-
-};
-
-
-// Update Property
-const updateProperty = async (req, res, next) => {
+    next
+) => {
 
     try {
 
-        const property = await propertyService.updateProperty(
-            req.params.id,
-            req.body
-        );
+        const property =
+            await propertyService.getPropertyById(
+                req.params.id,
+                req.user
+            );
+
 
         ResponseHelper.success(
-    res,
-    "Property updated successfully",
-    property
-);
+            res,
+            "Property fetched successfully",
+            propertyMapper(property)
+        );
 
     } catch (error) {
 
@@ -101,19 +110,63 @@ const updateProperty = async (req, res, next) => {
 };
 
 
+// ==================================================
+// Update Property
+// ==================================================
+
+const updateProperty = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const property =
+            await propertyService.updateProperty(
+                req.params.id,
+                req.body,
+                req.user
+            );
+
+
+        ResponseHelper.success(
+            res,
+            "Property updated successfully",
+            property
+        );
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
+
+// ==================================================
 // Delete Property
-const deleteProperty = async (req, res, next) => {
+// ==================================================
+
+const deleteProperty = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         await propertyService.deleteProperty(
-            req.params.id
+            req.params.id,
+            req.user
         );
 
+
         ResponseHelper.success(
-    res,
-    "Property deleted successfully"
-);
+            res,
+            "Property deleted successfully"
+        );
 
     } catch (error) {
 
@@ -122,16 +175,25 @@ const deleteProperty = async (req, res, next) => {
     }
 
 };
+
+
+// ==================================================
 // Search Properties
-const searchProperties = async (req, res, next) => {
+// ==================================================
+
+const searchProperties = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-         console.log("SEARCH CONTROLLER:", req.query.q);
-
-        const properties = await propertyService.searchProperties(
-            req.query.q
-        );
+        const properties =
+            await propertyService.searchProperties(
+                req.query.q,
+                req.user
+            );
 
 
         ResponseHelper.success(
@@ -140,7 +202,6 @@ const searchProperties = async (req, res, next) => {
             properties.map(propertyMapper)
         );
 
-
     } catch (error) {
 
         next(error);
@@ -148,14 +209,24 @@ const searchProperties = async (req, res, next) => {
     }
 
 };
+
+
+// ==================================================
 // Get Property Full Detail
-const getPropertyDetail = async (req, res, next) => {
+// ==================================================
+
+const getPropertyDetail = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const property =
             await propertyService.getPropertyDetail(
-                req.params.id
+                req.params.id,
+                req.user
             );
 
 
@@ -165,8 +236,7 @@ const getPropertyDetail = async (req, res, next) => {
             propertyMapper(property)
         );
 
-
-    } catch(error) {
+    } catch (error) {
 
         next(error);
 
@@ -174,15 +244,25 @@ const getPropertyDetail = async (req, res, next) => {
 
 };
 
+
+// ==================================================
 // Get Property Owners
-const getPropertyOwners = async (req, res, next) => {
+// ==================================================
+
+const getPropertyOwners = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const property =
             await propertyService.getPropertyOwners(
-                req.params.id
+                req.params.id,
+                req.user
             );
+
 
         ResponseHelper.success(
             res,
@@ -198,15 +278,25 @@ const getPropertyOwners = async (req, res, next) => {
 
 };
 
+
+// ==================================================
 // Get Property Residents
-const getPropertyResidents = async (req, res, next) => {
+// ==================================================
+
+const getPropertyResidents = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const property =
             await propertyService.getPropertyResidents(
-                req.params.id
+                req.params.id,
+                req.user
             );
+
 
         ResponseHelper.success(
             res,
@@ -222,15 +312,25 @@ const getPropertyResidents = async (req, res, next) => {
 
 };
 
+
 module.exports = {
 
     createProperty,
+
     getProperties,
+
     getPropertyById,
+
     updateProperty,
+
     deleteProperty,
+
     searchProperties,
+
     getPropertyDetail,
+
     getPropertyOwners,
+
     getPropertyResidents
+
 };

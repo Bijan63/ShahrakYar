@@ -40,12 +40,27 @@ class ComplexRepository {
 
 
     async update(id, data) {
+
+        const updateData = {};
+
+        if (data.name !== undefined) {
+            updateData.name = data.name;
+        }
+
+        if (data.address !== undefined) {
+            updateData.address = data.address;
+        }
+
+        if (data.description !== undefined) {
+            updateData.description = data.description;
+        }
+
         return prisma.complex.update({
             where: {
                 id
             },
 
-            data
+            data: updateData
         });
     }
 

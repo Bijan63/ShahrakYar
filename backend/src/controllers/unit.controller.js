@@ -1,266 +1,197 @@
-const prisma = require("../config/prisma");
+const unitService =
+    require("../services/unit.service");
 
-// =====================
-// ایجاد واحد
-// =====================
+const {
+    unitMapper
+} = require("../mappers/unit.mapper");
 
-const createUnit = async (req, res) => {
+
+// ======================================================
+// Create Unit
+// ======================================================
+
+const createUnit = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-        const {
-            unitNumber,
-            floor,
-            area,
-            code,
-            buildingId,
-            propertyId
-        } = req.body;
-
-
-        // بررسی Property در صورت ارسال
-        if (propertyId) {
-
-            const property =
-                await prisma.property.findUnique({
-
-                    where: {
-                        id: propertyId
-                    }
-
-                });
-
-
-            if (!property) {
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    message: "Property not found."
-
-                });
-
-            }
-
-        }
-
-
-        // بررسی Building در صورت ارسال
-        if (buildingId) {
-
-            const building =
-                await prisma.building.findUnique({
-
-                    where: {
-                        id: buildingId
-                    }
-
-                });
-
-
-            if (!building) {
-
-                return res.status(404).json({
-
-                    success: false,
-
-                    message: "Building not found."
-
-                });
-
-            }
-
-        }
-
-
         const unit =
-            await prisma.unit.create({
-
-                data: {
-
-                    unitNumber,
-
-                    floor,
-
-                    area,
-
-                    code,
-
-                    buildingId,
-
-                    propertyId
-
-                },
-
-                include: {
-
-                    building: true,
-
-                    property: true
-
-                }
-
-            });
-
+            await unitService.createUnit(
+                req.body,
+                req.user
+            );
 
         return res.status(201).json({
 
             success: true,
 
-            unit
+            unit:
+                unitMapper(unit)
 
         });
-
 
     } catch (error) {
 
-        console.error(error);
-
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: "Internal Server Error"
-
-        });
+        next(error);
 
     }
 
 };
 
 
-// =====================
-// دریافت لیست همه واحدها
-// =====================
+// ======================================================
+// Get All Units
+// ======================================================
 
-const getUnits = async (req, res) => {
+const getUnits = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
         const units =
-            await prisma.unit.findMany({
+            await unitService.getUnits(
+                req.user
+            );
 
-                include: {
-
-                    building: true,
-
-                    property: true,
-
-                    residents: true
-
-                },
-
-                orderBy: {
-
-                    id: "asc"
-
-                }
-
-            });
-
-
-        return res.json({
+        return res.status(200).json({
 
             success: true,
 
-            units
+            units:
+                units.map(unitMapper)
 
         });
-
 
     } catch (error) {
 
-        console.error(error);
-
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: "Internal Server Error"
-
-        });
+        next(error);
 
     }
 
 };
 
 
-// =====================
-// دریافت یک واحد
-// =====================
+// ======================================================
+// Get Unit By ID
+// ======================================================
 
-const getUnitById = async (req, res) => {
+const getUnitById = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-        const id =
-            req.params.id;
-
-
         const unit =
-            await prisma.unit.findUnique({
+            await unitService.getUnitById(
+                req.params.id,
+                req.user
+            );
 
-                where: {
-
-                    id
-
-                },
-
-                include: {
-
-                    building: true,
-
-                    property: true,
-
-                    residents: true
-
-                }
-
-            });
-
-
-        if (!unit) {
-
-            return res.status(404).json({
-
-                success: false,
-
-                message: "Unit not found."
-
-            });
-
-        }
-
-
-        return res.json({
+        return res.status(200).json({
 
             success: true,
 
-            unit
+            unit:
+                unitMapper(unit)
 
         });
-
 
     } catch (error) {
 
-        console.error(error);
-
-
-        return res.status(500).json({
-
-            success: false,
-
-            message: "Internal Server Error"
-
-        });
+        next(error);
 
     }
 
 };
 
+
+// ======================================================
+// Update Unit
+// ======================================================
+
+const updateUnit = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const unit =
+            await unitService.updateUnit(
+                req.params.id,
+                req.body,
+                req.user
+            );
+
+        return res.status(200).json({
+
+            success: true,
+
+            unit:
+                unitMapper(unit)
+
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
+
+// ======================================================
+// Delete Unit
+// ======================================================
+
+const deleteUnit = async (
+    req,
+    res,
+    next
+) => {
+
+    try {
+
+        const unit =
+            await unitService.deleteUnit(
+                req.params.id,
+                req.user
+            );
+
+        return res.status(200).json({
+
+            success: true,
+
+            message:
+                "Unit deleted successfully",
+
+            unit:
+                unitMapper(unit)
+
+        });
+
+    } catch (error) {
+
+        next(error);
+
+    }
+
+};
+
+
+// ======================================================
+// Export
+// ======================================================
 
 module.exports = {
 
@@ -268,6 +199,10 @@ module.exports = {
 
     getUnits,
 
-    getUnitById
+    getUnitById,
+
+    updateUnit,
+
+    deleteUnit
 
 };

@@ -1,26 +1,32 @@
-const electionService = require("../services/election.service");
+const electionService =
+    require("../services/election.service");
+
 
 const createElection = async (req, res, next) => {
     try {
-        const election = await electionService.createElection(req.body);
+        const election =
+            await electionService.createElection(req.body, req.user);
 
         return res.status(201).json({
             success: true,
-
             election
         });
     } catch (err) {
         next(err);
     }
 };
+
 
 const getElection = async (req, res, next) => {
     try {
-        const election = await electionService.getElection(req.params.id);
+        const election =
+            await electionService.getElection(
+                req.params.id,
+                req.user
+            );
 
         return res.json({
             success: true,
-
             election
         });
     } catch (err) {
@@ -28,13 +34,14 @@ const getElection = async (req, res, next) => {
     }
 };
 
+
 const getElections = async (req, res, next) => {
     try {
-        const elections = await electionService.getElections();
+        const elections =
+            await electionService.getElections(req.user);
 
         return res.json({
             success: true,
-
             elections
         });
     } catch (err) {
@@ -42,31 +49,31 @@ const getElections = async (req, res, next) => {
     }
 };
 
+
 const openElection = async (req, res, next) => {
     try {
-        const election = await electionService.openElection(req.params.id);
+        const election =
+            await electionService.openElection(req.params.id);
 
         return res.json({
             success: true,
-
             message: "Election opened successfully.",
-
             election
         });
     } catch (err) {
         next(err);
     }
 };
+
 
 const closeElection = async (req, res, next) => {
     try {
-        const election = await electionService.closeElection(req.params.id);
+        const election =
+            await electionService.closeElection(req.params.id);
 
         return res.json({
             success: true,
-
             message: "Election closed successfully.",
-
             election
         });
     } catch (err) {
@@ -74,13 +81,17 @@ const closeElection = async (req, res, next) => {
     }
 };
 
+
 const getResult = async (req, res, next) => {
     try {
-        const result = await electionService.getResult(req.params.id);
+        const result =
+            await electionService.getResult(
+                req.params.id,
+                req.user
+            );
 
         return res.json({
             success: true,
-
             result
         });
     } catch (err) {
@@ -88,16 +99,12 @@ const getResult = async (req, res, next) => {
     }
 };
 
+
 module.exports = {
     createElection,
-
     getElection,
-
     getElections,
-
     openElection,
-
     closeElection,
-
     getResult
 };

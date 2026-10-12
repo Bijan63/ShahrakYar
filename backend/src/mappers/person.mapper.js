@@ -1,6 +1,6 @@
 const personSummary = (person) => {
 
-    if (!person) return null;
+    if (!person) {return null;}
 
     return {
 
@@ -28,7 +28,7 @@ const personSummary = (person) => {
 
 const personMapper = (person) => {
 
-    if (!person) return null;
+    if (!person) {return null;}
 
     return {
 
@@ -51,7 +51,7 @@ const personMapper = (person) => {
 
 const personPropertiesMapper = (person) => {
 
-    if (!person) return null;
+    if (!person) {return null;}
 
     return {
 
@@ -99,7 +99,7 @@ const personPropertiesMapper = (person) => {
 
 const personResidenciesMapper = (person) => {
 
-    if (!person) return null;
+    if (!person) {return null;}
 
     return {
 

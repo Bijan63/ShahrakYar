@@ -1,57 +1,42 @@
-const dashboardRepository = require("../repositories/dashboard.repository");
-const prisma = require("../config/prisma");
+const AppError = require("../utils/AppError");
+
+const dashboardRepository =
+    require("../repositories/dashboard.repository");
+
+const accessService =
+    require("./access.service");
 
 class DashboardService {
-    async getDashboard() {
-        const [
-            buildings,
-            units,
-            residents,
-            owners,
-            tenants,
-            activeElections,
-            candidates,
-            votes
-        ] = await Promise.all([
-            prisma.building.count(),
+    async getDashboard(user) {
+        if (!user || !user.id || !user.role) {
+            throw new AppError("Unauthorized.", 401);
+        }
 
-            prisma.unit.count(),
+        if (!["ADMIN", "MANAGER"].includes(user.role)) {
+            throw new AppError("Forbidden.", 403);
+        }
 
-            prisma.resident.count(),
+        const complexIds =
+            await accessService.getAccessibleComplexIds(user);
 
-            prisma.resident.count({
-                where: {
-                    residentType: "OWNER"
-                }
-            }),
+        // Only an active ADMIN gets the global dashboard.
+        // AccessService returns null only for an active ADMIN.
+        if (user.role === "ADMIN") {
+            if (complexIds !== null) {
+                throw new AppError("Forbidden.", 403);
+            }
 
-            prisma.resident.count({
-                where: {
-                    residentType: "TENANT"
-                }
-            }),
+            return dashboardRepository.getStatistics();
+        }
 
-            prisma.election.count({
-                where: {
-                    status: "ACTIVE"
-                }
-            }),
+        // MANAGER can only see statistics for assigned complexes.
+        if (!Array.isArray(complexIds)) {
+            throw new AppError("Forbidden.", 403);
+        }
 
-            prisma.candidate.count(),
-
-            prisma.vote.count()
-        ]);
-
-        return {
-            buildings,
-            units,
-            residents,
-            owners,
-            tenants,
-            activeElections,
-            candidates,
-            votes
-        };
+        return dashboardRepository.getStatistics({
+            complexIds,
+        });
     }
 }
 

@@ -1,18 +1,37 @@
-const buildingService = require("../services/building.service");
+const buildingService =
+    require("../services/building.service");
+
+const {
+    buildingMapper
+} = require("../mappers/building.mapper");
 
 
+// =========================
 // Create Building
-const createBuilding = async (req, res, next) => {
+// =========================
+
+const createBuilding = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-        const building = await buildingService.createBuilding(
-            req.body
-        );
+        const building =
+            await buildingService.createBuilding(
+                req.body,
+                req.user
+            );
+
 
         return res.status(201).json({
+
             success: true,
-            building
+
+            building:
+                buildingMapper(building)
+
         });
 
     } catch (err) {
@@ -24,16 +43,33 @@ const createBuilding = async (req, res, next) => {
 };
 
 
+// =========================
 // Get All Buildings
-const getBuildings = async (req, res, next) => {
+// =========================
+
+const getBuildings = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-        const buildings = await buildingService.getBuildings();
+        const buildings =
+            await buildingService.getBuildings(
+                req.user
+            );
+
 
         return res.status(200).json({
+
             success: true,
-            buildings
+
+            buildings:
+                buildings.map(
+                    buildingMapper
+                )
+
         });
 
     } catch (err) {
@@ -45,28 +81,33 @@ const getBuildings = async (req, res, next) => {
 };
 
 
-// Get Building By Id
-const getBuilding = async (req, res, next) => {
+// =========================
+// Get Building By ID
+// =========================
+
+const getBuilding = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-        const building = await buildingService.getBuildingById(
-            req.params.id
-        );
-
-        if (!building) {
-            return res.status(404).json({
-                success: false,
-                message: "Building not found"
-            });
-        }
+        const building =
+            await buildingService.getBuildingById(
+                req.params.id,
+                req.user
+            );
 
 
         return res.status(200).json({
-            success: true,
-            building
-        });
 
+            success: true,
+
+            building:
+                buildingMapper(building)
+
+        });
 
     } catch (err) {
 
@@ -77,21 +118,34 @@ const getBuilding = async (req, res, next) => {
 };
 
 
+// =========================
 // Update Building
-const updateBuilding = async (req, res, next) => {
+// =========================
+
+const updateBuilding = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-        const building = await buildingService.updateBuilding(
-            req.params.id,
-            req.body
-        );
+        const building =
+            await buildingService.updateBuilding(
+                req.params.id,
+                req.body,
+                req.user
+            );
+
 
         return res.status(200).json({
-            success: true,
-            building
-        });
 
+            success: true,
+
+            building:
+                buildingMapper(building)
+
+        });
 
     } catch (err) {
 
@@ -102,21 +156,36 @@ const updateBuilding = async (req, res, next) => {
 };
 
 
+// =========================
 // Delete Building
-const deleteBuilding = async (req, res, next) => {
+// =========================
+
+const deleteBuilding = async (
+    req,
+    res,
+    next
+) => {
 
     try {
 
-        const building = await buildingService.deleteBuilding(
-            req.params.id
-        );
+        const building =
+            await buildingService.deleteBuilding(
+                req.params.id,
+                req.user
+            );
+
 
         return res.status(200).json({
-            success: true,
-            message: "Building deleted successfully",
-            building
-        });
 
+            success: true,
+
+            message:
+                "Building deleted successfully",
+
+            building:
+                buildingMapper(building)
+
+        });
 
     } catch (err) {
 
@@ -128,9 +197,15 @@ const deleteBuilding = async (req, res, next) => {
 
 
 module.exports = {
+
     createBuilding,
+
     getBuildings,
+
     getBuilding,
+
     updateBuilding,
+
     deleteBuilding
+
 };
