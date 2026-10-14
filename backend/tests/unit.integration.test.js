@@ -781,6 +781,64 @@ describe("Unit integration tests", () => {
     });
 
 
+
+    test("MANAGER cannot update or delete a Unit in an unassigned complex", async () => {
+        const buildingB = await makeBuilding(complexB.id);
+
+        const payload = unitPayload({
+            buildingId: buildingB.id,
+            code: nextUnitCode(),
+            unitNumber: nextUnitNumber(),
+        });
+
+        const created = await createUnit(payload);
+        expect(created.statusCode).toBe(201);
+
+        const id = created.body.unit.id;
+
+        const before = await prisma.unit.findUnique({
+            where: { id },
+        });
+
+        expect(before).not.toBeNull();
+
+        const updateResponse = await api(
+            managerToken,
+            "put",
+            `/api/units/${id}`
+        ).send({
+            unitNumber: nextUnitNumber(),
+        });
+
+        expect(updateResponse.statusCode).toBe(403);
+
+        const afterUpdate = await prisma.unit.findUnique({
+            where: { id },
+        });
+
+        expect(afterUpdate).not.toBeNull();
+        expect(afterUpdate.unitNumber).toBe(before.unitNumber);
+        expect(afterUpdate.buildingId).toBe(before.buildingId);
+        expect(afterUpdate.propertyId).toBe(before.propertyId);
+
+        const deleteResponse = await api(
+            managerToken,
+            "delete",
+            `/api/units/${id}`
+        );
+
+        expect(deleteResponse.statusCode).toBe(403);
+
+        const afterDelete = await prisma.unit.findUnique({
+            where: { id },
+        });
+
+        expect(afterDelete).not.toBeNull();
+        expect(afterDelete.unitNumber).toBe(before.unitNumber);
+        expect(afterDelete.buildingId).toBe(before.buildingId);
+        expect(afterDelete.propertyId).toBe(before.propertyId);
+    });
+
     test("returns 400 when deleting a Unit with an invalid ID", async () => {
         const response = await api(
             adminToken,

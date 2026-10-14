@@ -786,6 +786,54 @@ describe("Property integration tests", () => {
         }
     });
 
+
+    test("MANAGER cannot update or delete a property in an unassigned complex", async () => {
+        const payload = landPayload({
+            complexId: complexB.id,
+        });
+
+        const created = await createProperty(payload);
+        expect(created.statusCode).toBe(201);
+
+        const property = await findByCode(payload.code);
+        expect(property).not.toBeNull();
+
+        const updateResponse = await api(
+            managerToken,
+            "put",
+            `/api/properties/${property.id}`
+        ).send({
+            description: "Unauthorized manager update",
+        });
+
+        expect(updateResponse.statusCode).toBe(403);
+
+        const afterUpdate = await prisma.property.findUnique({
+            where: { id: property.id },
+        });
+
+        expect(afterUpdate).not.toBeNull();
+        expect(afterUpdate.code).toBe(property.code);
+        expect(afterUpdate.complexId).toBe(complexB.id);
+        expect(afterUpdate.description).toBe(property.description);
+
+        const deleteResponse = await api(
+            managerToken,
+            "delete",
+            `/api/properties/${property.id}`
+        );
+
+        expect(deleteResponse.statusCode).toBe(403);
+
+        const afterDelete = await prisma.property.findUnique({
+            where: { id: property.id },
+        });
+
+        expect(afterDelete).not.toBeNull();
+        expect(afterDelete.code).toBe(property.code);
+        expect(afterDelete.complexId).toBe(complexB.id);
+    });
+
     test("deletes a property, cascades dependent records, and preserves Unit with null propertyId", async () => {
         const payload = villaPayload({
             landArea: 200,
