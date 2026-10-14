@@ -395,6 +395,109 @@ describe("Building integration tests", () => {
         expect(response.statusCode).toBe(403);
     });
 
+    test("MANAGER cannot update or delete a building in an unassigned complex", async () => {
+        const originalName = nextBuildingName();
+        const created = await createBuilding(
+            originalName,
+            complexB.id
+        );
+
+        expect(created.statusCode).toBe(201);
+
+        const buildingId = created.body.building.id;
+
+        const updateResponse = await api(
+            managerToken,
+            "put",
+            `/api/buildings/${buildingId}`
+        ).send({
+            name: nextBuildingName(),
+        });
+
+        expect(updateResponse.statusCode).toBe(403);
+
+        const deleteResponse = await api(
+            managerToken,
+            "delete",
+            `/api/buildings/${buildingId}`
+        );
+
+        expect(deleteResponse.statusCode).toBe(403);
+
+        const saved = await prisma.building.findUnique({
+            where: { id: buildingId },
+        });
+
+        expect(saved).not.toBeNull();
+        expect(saved.name).toBe(originalName);
+        expect(saved.complexId).toBe(complexB.id);
+    });
+
+    test("USER cannot create, list, read, update, or delete buildings", async () => {
+        const created = await createBuilding();
+
+        expect(created.statusCode).toBe(201);
+
+        const buildingId = created.body.building.id;
+        const originalName = created.body.building.name;
+
+        const endpoints = [
+            {
+                method: "post",
+                path: "/api/buildings",
+                body: {
+                    name: nextBuildingName(),
+                    complexId: complexA.id,
+                },
+            },
+            {
+                method: "get",
+                path: "/api/buildings",
+            },
+            {
+                method: "get",
+                path: `/api/buildings/${buildingId}`,
+            },
+            {
+                method: "put",
+                path: `/api/buildings/${buildingId}`,
+                body: {
+                    name: nextBuildingName(),
+                },
+            },
+            {
+                method: "delete",
+                path: `/api/buildings/${buildingId}`,
+            },
+        ];
+
+        for (const endpoint of endpoints) {
+            let req = api(
+                userToken,
+                endpoint.method,
+                endpoint.path
+            );
+
+            if (endpoint.body) {
+                req = req.send(endpoint.body);
+            }
+
+            const response = await req;
+
+            expect(response.statusCode).toBe(403);
+        }
+
+        // هیچ عملیات غیرمجاز نباید ساختمان اصلی را تغییر دهد یا حذف کند.
+        const saved = await prisma.building.findUnique({
+            where: { id: buildingId },
+        });
+
+        expect(saved).not.toBeNull();
+        expect(saved.name).toBe(originalName);
+        expect(saved.complexId).toBe(complexA.id);
+    });
+
+
     test("updates allowed fields and ignores complexId in update data", async () => {
         const created = await createBuilding();
 
