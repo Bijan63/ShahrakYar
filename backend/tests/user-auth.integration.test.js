@@ -333,6 +333,88 @@ describe("User API integration tests", () => {
 
         expect(response.statusCode).toBe(403);
     });
+    test("profile requires authentication", async () => {
+        const response = await request(app)
+            .get("/api/users/profile");
+
+        expect(response.statusCode).toBe(401);
+    });
+
+    test.each([
+        ["MANAGER", () => managerToken],
+        ["USER", () => userToken],
+    ])(
+        "%s cannot read, update, or delete another user's account",
+        async (_role, tokenFactory) => {
+            // ساخت یک حساب مستقل برای آزمون؛ حذف آن در cleanupFixtures انجام می‌شود.
+            const target = await makeStoredUser("restricted-target");
+
+            const before = await prisma.user.findUnique({
+                where: { id: target.id },
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    password: true,
+                    role: true,
+                    status: true,
+                    personId: true,
+                },
+            });
+
+            const token = tokenFactory();
+
+            const endpoints = [
+                {
+                    method: "get",
+                    path: `/api/users/${target.id}`,
+                },
+                {
+                    method: "patch",
+                    path: `/api/users/${target.id}`,
+                    body: {
+                        fullName: "Unauthorized Change",
+                    },
+                },
+                {
+                    method: "delete",
+                    path: `/api/users/${target.id}`,
+                },
+            ];
+
+            for (const endpoint of endpoints) {
+                let req = api(
+                    token,
+                    endpoint.method,
+                    endpoint.path
+                );
+
+                if (endpoint.body) {
+                    req = req.send(endpoint.body);
+                }
+
+                const response = await req;
+
+                expect(response.statusCode).toBe(403);
+            }
+
+            // حساب باید موجود بماند و اطلاعاتش تغییر نکرده باشد.
+            const after = await prisma.user.findUnique({
+                where: { id: target.id },
+                select: {
+                    id: true,
+                    fullName: true,
+                    email: true,
+                    password: true,
+                    role: true,
+                    status: true,
+                    personId: true,
+                },
+            });
+
+            expect(after).toEqual(before);
+        }
+    );
 
     test("ADMIN creates a user without exposing the password", async () => {
         const email = nextEmail("admin-create");

@@ -210,6 +210,83 @@ describe("Person integration tests", () => {
             })
         ).toBeNull();
     });
+test.each([
+    ["MANAGER", () => managerToken],
+    ["USER", () => userToken],
+])(
+    "%s cannot read, update, or delete a Person",
+    async (_role, tokenFactory) => {
+        const payload = personPayload();
+
+        // ابتدا شخص را با دسترسی ADMIN ایجاد می‌کنیم.
+        const created = await createPerson(payload, adminToken);
+
+        expect(created.statusCode).toBe(201);
+
+        const person = await prisma.person.findUnique({
+            where: {
+                nationalId: payload.nationalId,
+            },
+        });
+
+        expect(person).not.toBeNull();
+
+        const token = tokenFactory();
+
+        const protectedRequests = [
+            {
+                method: "get",
+                path: `/api/persons/${person.id}`,
+            },
+            {
+                method: "get",
+                path: `/api/persons/${person.id}/properties`,
+            },
+            {
+                method: "get",
+                path: `/api/persons/${person.id}/residencies`,
+            },
+            {
+                method: "put",
+                path: `/api/persons/${person.id}`,
+                body: {
+                    firstName: "Unauthorized Update",
+                },
+            },
+            {
+                method: "delete",
+                path: `/api/persons/${person.id}`,
+            },
+        ];
+
+        for (const endpoint of protectedRequests) {
+            let req = api(
+                token,
+                endpoint.method,
+                endpoint.path
+            );
+
+            if (endpoint.body) {
+                req = req.send(endpoint.body);
+            }
+
+            const response = await req;
+
+            expect(response.statusCode).toBe(403);
+        }
+
+        // شخص باید باقی بماند و اطلاعاتش تغییر نکرده باشد.
+        const saved = await prisma.person.findUnique({
+            where: {
+                id: person.id,
+            },
+        });
+
+        expect(saved).not.toBeNull();
+        expect(saved.firstName).toBe(payload.firstName);
+        expect(saved.nationalId).toBe(payload.nationalId);
+    }
+);
 
     test("ADMIN creates a Person and persists the data", async () => {
         const payload = personPayload();
