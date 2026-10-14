@@ -896,6 +896,107 @@ describe("Ownership integration tests", () => {
         expect(Number(transfer.newPercentage)).toBe(50);
     });
 
+
+    test("limits ownership history to complexes assigned to MANAGER", async () => {
+        const accessibleResponse = await createOwnership({
+            propertyId: propertyA.id,
+            personId: personA.id,
+            percentage: 50,
+            startDate: "2026-05-25T00:00:00.000Z",
+            endDate: "2026-06-01T00:00:00.000Z",
+        });
+
+        const inaccessibleResponse = await createOwnership({
+            propertyId: propertyB.id,
+            personId: personB.id,
+            percentage: 50,
+            startDate: "2026-05-25T00:00:00.000Z",
+            endDate: "2026-06-01T00:00:00.000Z",
+        });
+
+        expect(accessibleResponse.statusCode).toBe(201);
+        expect(inaccessibleResponse.statusCode).toBe(201);
+
+        const accessible = await readOwnership(propertyA.id, personA.id);
+        const inaccessible = await readOwnership(propertyB.id, personB.id);
+
+        const response = await api(
+            managerToken,
+            "get",
+            "/api/ownerships/history"
+        ).query({
+            from: "1405/03/01",
+            to: "1405/03/31",
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+
+        const returnedIds = response.body.data.map(
+            (ownership) => ownership.id
+        );
+
+        expect(returnedIds).toContain(accessible.id);
+        expect(returnedIds).not.toContain(inaccessible.id);
+    });
+
+    test("limits ownership changes to complexes assigned to MANAGER", async () => {
+        const previousA = await createOwnership({
+            propertyId: propertyA.id,
+            personId: personA.id,
+            percentage: 50,
+            startDate: "2026-05-25T00:00:00.000Z",
+            endDate: "2026-06-01T00:00:00.000Z",
+        });
+
+        const nextA = await createOwnership({
+            propertyId: propertyA.id,
+            personId: personB.id,
+            percentage: 50,
+            startDate: "2026-06-02T00:00:00.000Z",
+        });
+
+        const previousB = await createOwnership({
+            propertyId: propertyB.id,
+            personId: personA.id,
+            percentage: 50,
+            startDate: "2026-05-25T00:00:00.000Z",
+            endDate: "2026-06-01T00:00:00.000Z",
+        });
+
+        const nextB = await createOwnership({
+            propertyId: propertyB.id,
+            personId: personB.id,
+            percentage: 50,
+            startDate: "2026-06-02T00:00:00.000Z",
+        });
+
+        expect(previousA.statusCode).toBe(201);
+        expect(nextA.statusCode).toBe(201);
+        expect(previousB.statusCode).toBe(201);
+        expect(nextB.statusCode).toBe(201);
+
+        const response = await api(
+            managerToken,
+            "get",
+            "/api/ownerships/changes"
+        ).query({
+            from: "1405/03/01",
+            to: "1405/03/31",
+        });
+
+        expect(response.statusCode).toBe(200);
+        expect(response.body.success).toBe(true);
+        expect(Array.isArray(response.body.data)).toBe(true);
+
+        const returnedPropertyIds = response.body.data.map(
+            (report) => report.property.id
+        );
+
+        expect(returnedPropertyIds).toContain(propertyA.id);
+        expect(returnedPropertyIds).not.toContain(propertyB.id);
+    });
+
     test("ownership history rejects an invalid Jalali date", async () => {
         const response = await api(
             adminToken,
