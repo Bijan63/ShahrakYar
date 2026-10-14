@@ -23,12 +23,16 @@ class OwnershipRepository extends BaseRepository {
         complexIds
     ) {
 
-        if (
-            !Array.isArray(complexIds)
-        ) {
-
+        // Explicit null is reserved for global access (ADMIN).
+        if (complexIds === null) {
             return {};
+        }
 
+        // Fail closed: invalid or missing scope must never remove the filter.
+        if (!Array.isArray(complexIds)) {
+            throw new TypeError(
+                "complexIds must be null or an array."
+            );
         }
 
 
@@ -77,7 +81,7 @@ class OwnershipRepository extends BaseRepository {
     // =====================================================
 
     async getOwnerships(
-        complexIds = null
+        complexIds
     ) {
 
         return await this.findAll({
@@ -112,7 +116,7 @@ class OwnershipRepository extends BaseRepository {
 
     async getOwnershipById(
         id,
-        complexIds = null
+        complexIds
     ) {
 
         return await this.model.findFirst({
@@ -137,6 +141,21 @@ class OwnershipRepository extends BaseRepository {
 
         });
 
+    }
+
+
+    // =====================================================
+    // Internal lookup for a subsequent explicit access check
+    // =====================================================
+
+    async getOwnershipByIdForAccessCheck(id) {
+        return await this.model.findFirst({
+            where: { id },
+            include: {
+                property: true,
+                person: true,
+            },
+        });
     }
 
 
@@ -190,7 +209,7 @@ class OwnershipRepository extends BaseRepository {
     async getOwnershipHistory(
         from,
         to,
-        complexIds = null
+        complexIds
     ) {
 
         return await this.model.findMany({
@@ -279,7 +298,7 @@ class OwnershipRepository extends BaseRepository {
     async getOwnershipChanges(
         from,
         to,
-        complexIds = null
+        complexIds
     ) {
 
         return await this.model.findMany({

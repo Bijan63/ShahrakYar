@@ -772,7 +772,7 @@ const updateOwnership = async (
     // -------------------------------------------------
 
     const existingOwnership =
-        await ownershipRepository.getOwnershipById(
+        await ownershipRepository.getOwnershipByIdForAccessCheck(
             id
         );
 
@@ -1119,7 +1119,7 @@ const deleteOwnership = async (
 
 
     const ownership =
-        await ownershipRepository.getOwnershipById(
+        await ownershipRepository.getOwnershipByIdForAccessCheck(
             id
         );
 
