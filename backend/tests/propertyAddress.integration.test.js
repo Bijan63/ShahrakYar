@@ -231,6 +231,7 @@ describe("PropertyAddress integration tests", () => {
         }
     );
 
+
     test("MANAGER and USER cannot access address list", async () => {
         const managerResponse = await api(
             managerToken,
@@ -247,6 +248,111 @@ describe("PropertyAddress integration tests", () => {
         expect(managerResponse.statusCode).toBe(403);
         expect(userResponse.statusCode).toBe(403);
     });
+
+    test.each([
+        ["MANAGER", () => managerToken],
+        ["USER", () => userToken],
+    ])(
+        "%s cannot create, read, update, or delete property addresses",
+        async (_role, tokenFactory) => {
+            const addressProperty = await makeProperty();
+            const createTargetProperty = await makeProperty();
+
+            // نشانی اولیه را با ADMIN ایجاد می‌کنیم.
+            const initialDescription =
+                "Address that must remain unchanged";
+
+            const createResponse = await createAddress(
+                addressPayload(addressProperty.id, {
+                    description: initialDescription,
+                }),
+                adminToken
+            );
+
+            expect(createResponse.statusCode).toBe(201);
+
+            const existingAddress =
+                await prisma.propertyAddress.findUnique({
+                    where: {
+                        propertyId: addressProperty.id,
+                    },
+                });
+
+            expect(existingAddress).not.toBeNull();
+
+            const token = tokenFactory();
+
+            const endpoints = [
+                {
+                    method: "post",
+                    path: "/api/property-addresses",
+                    body: addressPayload(createTargetProperty.id),
+                },
+                {
+                    method: "get",
+                    path: "/api/property-addresses",
+                },
+                {
+                    method: "get",
+                    path: `/api/property-addresses/${existingAddress.id}`,
+                },
+                {
+                    method: "get",
+                    path: `/api/property-addresses/property/${addressProperty.id}`,
+                },
+                {
+                    method: "put",
+                    path: `/api/property-addresses/${existingAddress.id}`,
+                    body: {
+                        description: "Unauthorized address update",
+                    },
+                },
+                {
+                    method: "delete",
+                    path: `/api/property-addresses/${existingAddress.id}`,
+                },
+            ];
+
+            for (const endpoint of endpoints) {
+                let req = api(
+                    token,
+                    endpoint.method,
+                    endpoint.path
+                );
+
+                if (endpoint.body) {
+                    req = req.send(endpoint.body);
+                }
+
+                const response = await req;
+
+                expect(response.statusCode).toBe(403);
+            }
+
+            // ایجاد غیرمجاز نباید نشانی جدیدی ثبت کند.
+            const unexpectedAddress =
+                await prisma.propertyAddress.findUnique({
+                    where: {
+                        propertyId: createTargetProperty.id,
+                    },
+                });
+
+            expect(unexpectedAddress).toBeNull();
+
+            // نشانی اولیه باید با همان اطلاعات باقی بماند.
+            const savedAddress =
+                await prisma.propertyAddress.findUnique({
+                    where: {
+                        id: existingAddress.id,
+                    },
+                });
+
+            expect(savedAddress).not.toBeNull();
+            expect(savedAddress.propertyId).toBe(addressProperty.id);
+            expect(savedAddress.description).toBe(initialDescription);
+        }
+    );
+
 
     test("ADMIN creates an address and persists its fields", async () => {
         const property = await makeProperty();
