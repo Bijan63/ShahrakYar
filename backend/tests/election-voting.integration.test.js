@@ -1007,7 +1007,111 @@ describe("Election, Candidate and Vote integration tests", () => {
         expect(counts[candidateA.body.candidate.id]).toBe(1);
         expect(counts[candidateB.body.candidate.id]).toBe(1);
     });
+    test("denies USER access to election details in an unowned complex", async () => {
+        const election = await createElection({
+            complexId: complexB.id,
+        });
 
+        expect(election.statusCode).toBe(201);
+
+        // The USER owns a property in complexA, not complexB.
+        await createActiveOwnership(propertyA.id, voterPerson.id);
+
+        const response = await api(
+            voterToken,
+            "get",
+            `/api/elections/${election.body.election.id}`
+        );
+
+        expect(response.statusCode).toBe(404);
+    });
+
+    test("denies USER access to candidates in an unowned complex", async () => {
+        const election = await createElection({
+            complexId: complexB.id,
+        });
+
+        expect(election.statusCode).toBe(201);
+
+        const candidate = await createCandidate(
+            election.body.election.id,
+            candidatePersonA.id
+        );
+
+        expect(candidate.statusCode).toBe(201);
+
+        await createActiveOwnership(propertyA.id, voterPerson.id);
+
+        const response = await api(
+            voterToken,
+            "get",
+            `/api/candidates/election/${election.body.election.id}`
+        );
+
+        expect(response.statusCode).toBe(404);
+    });
+
+    test("denies USER access to an individual candidate in an unowned complex", async () => {
+        const election = await createElection({
+            complexId: complexB.id,
+        });
+
+        expect(election.statusCode).toBe(201);
+
+        const candidate = await createCandidate(
+            election.body.election.id,
+            candidatePersonA.id
+        );
+
+        expect(candidate.statusCode).toBe(201);
+
+        await createActiveOwnership(propertyA.id, voterPerson.id);
+
+        const response = await api(
+            voterToken,
+            "get",
+            `/api/candidates/${candidate.body.candidate.id}`
+        );
+
+        expect(response.statusCode).toBe(404);
+    });
+
+    test("denies MANAGER access to results in an unassigned complex", async () => {
+        const election = await createElection({
+            complexId: complexB.id,
+        });
+
+        expect(election.statusCode).toBe(201);
+
+        const electionId = election.body.election.id;
+
+        const candidate = await createCandidate(
+            electionId,
+            candidatePersonA.id
+        );
+
+        expect(candidate.statusCode).toBe(201);
+
+        const opened = await openElection(electionId);
+        expect(opened.statusCode).toBe(200);
+
+        // Verify both exposed result endpoints.
+        const voteResultResponse = await api(
+            managerToken,
+            "get",
+            `/api/votes/election/${electionId}/result`
+        );
+
+        expect(voteResultResponse.statusCode).toBe(404);
+
+        const electionResultResponse = await api(
+            managerToken,
+            "get",
+            `/api/elections/${electionId}/result`
+        );
+
+        expect(electionResultResponse.statusCode).toBe(404);
+    });
     test("limits a USER election list to complexes where the person has active ownership", async () => {
         const electionA = await createElection({
             title: `${tag}-accessible-election`,
