@@ -168,6 +168,89 @@ afterAll(async () => {
 });
 
 describe("ComplexManager API integration tests", () => {
+
+
+    test("all endpoints require authentication and ADMIN role", async () => {
+        const endpoints = [
+            {
+                method: "get",
+                path: "/api/complex-managers",
+            },
+            {
+                method: "post",
+                path: "/api/complex-managers",
+                body: {
+                    userId: secondManager.id,
+                    complexId: complexB.id,
+                },
+            },
+            {
+                method: "get",
+                path: `/api/complex-managers/${existingAssignment.id}`,
+            },
+            {
+                method: "get",
+                path: `/api/complex-managers/manager/${manager.id}`,
+            },
+            {
+                method: "get",
+                path: `/api/complex-managers/complex/${complexA.id}`,
+            },
+            {
+                method: "delete",
+                path: `/api/complex-managers/${removableAssignment.id}`,
+            },
+        ];
+
+        async function sendRequest(token, endpoint) {
+            let req = api(token, endpoint.method, endpoint.path);
+
+            if (endpoint.body) {
+                req = req.send(endpoint.body);
+            }
+
+            return req;
+        }
+
+        for (const endpoint of endpoints) {
+            // درخواست بدون توکن باید Unauthorized باشد.
+            const anonymousResponse = await sendRequest(
+                null,
+                endpoint
+            );
+
+            expect(anonymousResponse.statusCode).toBe(401);
+
+            // هیچ‌یک از نقش‌های غیر ADMIN اجازه دسترسی ندارند.
+            for (const token of [managerToken, regularUserToken]) {
+                const response = await sendRequest(token, endpoint);
+
+                expect(response.statusCode).toBe(403);
+            }
+        }
+
+        // درخواست‌های غیرمجاز نباید تخصیص جدیدی ایجاد کنند.
+        const unexpectedAssignment =
+            await prisma.complexManager.findFirst({
+                where: {
+                    userId: secondManager.id,
+                    complexId: complexB.id,
+                },
+            });
+
+        expect(unexpectedAssignment).toBeNull();
+
+        // درخواست حذف غیرمجاز نباید تخصیص موجود را حذف کند.
+        const preservedAssignment =
+            await prisma.complexManager.findUnique({
+                where: {
+                    id: removableAssignment.id,
+                },
+            });
+
+        expect(preservedAssignment).not.toBeNull();
+    });
+
     test("ADMIN can list manager assignments", async () => {
         const response = await api(
             adminToken,
