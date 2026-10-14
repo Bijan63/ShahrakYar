@@ -20,7 +20,7 @@ const fixture = {
     financialAccountId: null,
     accountIds: [],
 };
-
+let residentUserToken;
 let adminToken;
 let receivableAccount;
 let revenueAccount;
@@ -209,7 +209,7 @@ beforeAll(async () => {
     });
 
     fixture.residentUserId = residentUser.id;
-
+	residentUserToken = tokenFor(residentUser);
     const complex = await prisma.complex.create({
         data: {
             name: `${tag}-complex`,
@@ -344,6 +344,168 @@ afterAll(async () => {
 });
 
 describe("Charge payment transaction integration tests", () => {
+    test("anonymous users and USER role cannot access UnitAccount management routes", async () => {
+        const attemptedCode = `${tag}-forbidden-account`;
+        const forbiddenId = "00000000-0000-4000-8000-000000000099";
+
+        const before = await prisma.unitAccount.findUnique({
+            where: { id: fixture.unitAccountId },
+            select: {
+                id: true,
+                unitId: true,
+                code: true,
+                title: true,
+                isActive: true,
+            },
+        });
+
+        const endpoints = [
+            {
+                method: "get",
+                path: "/api/unit-accounts",
+            },
+            {
+                method: "post",
+                path: "/api/unit-accounts",
+                body: {
+                    unitId: fixture.unitId,
+                    code: attemptedCode,
+                    title: "Unauthorized account",
+                },
+            },
+            {
+                method: "get",
+                path: `/api/unit-accounts/unit/${fixture.unitId}`,
+            },
+            {
+                method: "get",
+                path: `/api/unit-accounts/${fixture.unitAccountId}`,
+            },
+            {
+                method: "put",
+                path: `/api/unit-accounts/${fixture.unitAccountId}`,
+                body: {
+                    title: "Unauthorized update",
+                },
+            },
+            {
+                method: "delete",
+                path: `/api/unit-accounts/${forbiddenId}`,
+            },
+        ];
+
+        for (const auth of [
+            { token: null, expectedStatus: 401 },
+            { token: residentUserToken, expectedStatus: 403 },
+        ]) {
+            for (const endpoint of endpoints) {
+                let req = api(
+                    auth.token,
+                    endpoint.method,
+                    endpoint.path
+                );
+
+                if (endpoint.body) {
+                    req = req.send(endpoint.body);
+                }
+
+                const response = await req;
+
+                expect(response.statusCode).toBe(auth.expectedStatus);
+            }
+        }
+
+        const after = await prisma.unitAccount.findUnique({
+            where: { id: fixture.unitAccountId },
+            select: {
+                id: true,
+                unitId: true,
+                code: true,
+                title: true,
+                isActive: true,
+            },
+        });
+
+        expect(after).toEqual(before);
+
+        const unexpectedAccount = await prisma.unitAccount.findFirst({
+            where: { code: attemptedCode },
+        });
+
+        expect(unexpectedAccount).toBeNull();
+    });
+    test("anonymous users and USER role cannot access charge-payment routes", async () => {
+        const charge = await createCharge("forbidden-access", 1000);
+        const description = `${tag}-forbidden-payment`;
+        const forbiddenId = "00000000-0000-4000-8000-000000000098";
+
+        const endpoints = [
+            {
+                method: "get",
+                path: "/api/charge-payments",
+            },
+            {
+                method: "post",
+                path: "/api/charge-payments",
+                body: paymentPayload(charge.id, 100, description),
+            },
+            {
+                method: "get",
+                path: `/api/charge-payments/${forbiddenId}`,
+            },
+            {
+                method: "get",
+                path: `/api/charge-payments/charge/${charge.id}`,
+            },
+            {
+                method: "get",
+                path: `/api/charge-payments/unit-account/${fixture.unitAccountId}`,
+            },
+        ];
+
+        for (const auth of [
+            { token: null, expectedStatus: 401 },
+            { token: residentUserToken, expectedStatus: 403 },
+        ]) {
+            for (const endpoint of endpoints) {
+                let req = api(
+                    auth.token,
+                    endpoint.method,
+                    endpoint.path
+                );
+
+                if (endpoint.body) {
+                    req = req.send(endpoint.body);
+                }
+
+                const response = await req;
+
+                expect(response.statusCode).toBe(auth.expectedStatus);
+            }
+        }
+
+        const paymentCount = await prisma.chargePayment.count({
+            where: {
+                chargeId: charge.id,
+                description,
+            },
+        });
+
+        expect(paymentCount).toBe(0);
+
+        const journalEntryCount = await prisma.journalEntry.count({
+            where: { description },
+        });
+
+        expect(journalEntryCount).toBe(0);
+
+        const persistedCharge = await prisma.charge.findUnique({
+            where: { id: charge.id },
+        });
+
+        expect(persistedCharge.status).toBe("ISSUED");
+    });
+
     test("records partial and final payments with balanced posted journal entries", async () => {
         const charge = await createCharge("partial-final", 1000);
 
