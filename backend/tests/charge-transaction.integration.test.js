@@ -10,6 +10,7 @@ const tag = `charge-tx-it-${process.pid}-${Date.now()}`;
 
 const fixture = {
     userId: null,
+    regularUserId: null,
     complexId: null,
     propertyId: null,
     unitId: null,
@@ -19,6 +20,7 @@ const fixture = {
 };
 
 let adminToken;
+let regularUserToken;
 let receivableAccount;
 let revenueAccount;
 let issueDate;
@@ -123,6 +125,12 @@ async function cleanupFixtures() {
         });
     }
 
+    if (fixture.regularUserId) {
+        await prisma.user.deleteMany({
+            where: { id: fixture.regularUserId },
+        });
+    }
+
     if (fixture.userId) {
         await prisma.user.deleteMany({
             where: { id: fixture.userId },
@@ -159,6 +167,19 @@ beforeAll(async () => {
 
     fixture.userId = user.id;
     adminToken = tokenFor(user);
+
+    const regularUser = await prisma.user.create({
+        data: {
+            fullName: `${tag}-user`,
+            email: `${tag}-user@example.test`,
+            password: "integration-test-only",
+            role: "USER",
+            status: "ACTIVE",
+        },
+    });
+
+    fixture.regularUserId = regularUser.id;
+    regularUserToken = tokenFor(regularUser);
 
     const complex = await prisma.complex.create({
         data: {
@@ -253,6 +274,150 @@ afterAll(async () => {
 });
 
 describe("Charge creation transaction integration tests", () => {
+    test("rejects anonymous users and USER role on all charge routes without side effects", async () => {
+        const targetDescription = `${tag}-access-target`;
+        const forbiddenDescription = `${tag}-forbidden-create`;
+
+        // Create a real charge and accounting entry using ADMIN access.
+        const seedResponse = await api(
+            adminToken,
+            "post",
+            "/api/charges"
+        ).send(chargePayload(targetDescription));
+
+        expect(seedResponse.statusCode).toBe(201);
+
+        const targetId = seedResponse.body.charge.id;
+
+        const readTargetState = async () => {
+            const charge = await prisma.charge.findUnique({
+                where: { id: targetId },
+            });
+
+            if (!charge) {
+                return null;
+            }
+
+            return {
+                id: charge.id,
+                unitAccountId: charge.unitAccountId,
+                fiscalPeriodId: charge.fiscalPeriodId,
+                type: charge.type,
+                periodYear: charge.periodYear,
+                periodMonth: charge.periodMonth,
+                amount: Number(charge.amount),
+                description: charge.description,
+                issueDate: charge.issueDate.toISOString(),
+                dueDate: charge.dueDate
+                    ? charge.dueDate.toISOString()
+                    : null,
+                status: charge.status,
+            };
+        };
+
+        const readFixtureChargeIds = async () => {
+            const rows = await prisma.charge.findMany({
+                where: { unitAccountId: fixture.unitAccountId },
+                select: { id: true },
+                orderBy: { id: "asc" },
+            });
+
+            return rows.map(row => row.id);
+        };
+
+        const readFixtureJournalEntryIds = async () => {
+            const rows = await prisma.journalEntry.findMany({
+                where: { fiscalPeriodId: fixture.fiscalPeriodId },
+                select: { id: true },
+                orderBy: { id: "asc" },
+            });
+
+            return rows.map(row => row.id);
+        };
+
+        const originalState = await readTargetState();
+        const originalChargeIds = await readFixtureChargeIds();
+        const originalJournalEntryIds =
+            await readFixtureJournalEntryIds();
+
+        expect(originalState).not.toBeNull();
+
+        const endpoints = [
+            {
+                method: "get",
+                path: "/api/charges",
+            },
+            {
+                method: "post",
+                path: "/api/charges",
+                body: chargePayload(forbiddenDescription),
+            },
+            {
+                method: "get",
+                path: `/api/charges/unit-account/${fixture.unitAccountId}`,
+            },
+            {
+                method: "get",
+                path: `/api/charges/${targetId}`,
+            },
+            {
+                method: "put",
+                path: `/api/charges/${targetId}`,
+                body: {
+                    amount: 999999,
+                    description: `${tag}-forbidden-update`,
+                },
+            },
+            {
+                method: "patch",
+                path: `/api/charges/${targetId}/cancel`,
+            },
+            {
+                method: "delete",
+                path: `/api/charges/${targetId}`,
+            },
+        ];
+
+        for (const auth of [
+            { token: null, expectedStatus: 401 },
+            { token: regularUserToken, expectedStatus: 403 },
+        ]) {
+            for (const endpoint of endpoints) {
+                let req = api(
+                    auth.token,
+                    endpoint.method,
+                    endpoint.path
+                );
+
+                if (endpoint.body) {
+                    req = req.send(endpoint.body);
+                }
+
+                const response = await req;
+
+                expect(response.statusCode).toBe(auth.expectedStatus);
+            }
+        }
+
+        // Unauthorized attempts must not change or remove the target charge.
+        expect(await readTargetState()).toEqual(originalState);
+
+        // They must not create another charge or journal entry.
+        expect(await readFixtureChargeIds()).toEqual(originalChargeIds);
+        expect(await readFixtureJournalEntryIds()).toEqual(
+            originalJournalEntryIds
+        );
+
+        const forbiddenCharge = await prisma.charge.findFirst({
+            where: {
+                unitAccountId: fixture.unitAccountId,
+                description: forbiddenDescription,
+            },
+        });
+
+        expect(forbiddenCharge).toBeNull();
+    });
+
     test("creates an ISSUED charge and a balanced POSTED journal entry", async () => {
         const description = `${tag}-success`;
 
