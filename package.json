@@ -1,0 +1,23 @@
+{
+  "name": "shahrakyar-finance-backend",
+  "version": "1.0.0",
+  "description": "Financial management API for ShahrakYar",
+  "main": "src/app.js",
+  "scripts": {
+    "dev": "node src/app.js",
+    "start": "node src/app.js",
+    "test": "node --test test/*.test.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "@prisma/client": "^6.19.3",
+    "cors": "^2.8.6",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "prisma": "^6.19.3",
+    "swagger-jsdoc": "^6.3.0",
+    "swagger-ui-express": "^5.0.1"
+  }
+}

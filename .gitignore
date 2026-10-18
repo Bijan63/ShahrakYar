@@ -1,0 +1,17 @@
+# Environment files and secrets
+.env*
+!.env.example
+
+# Installed dependencies and generated output
+node_modules/
+coverage/
+logs/
+*.log
+
+# Local backups and snapshots
+backups/
+*.bak
+*.bak*
+*.save
+*.backup*
+*.before-*
