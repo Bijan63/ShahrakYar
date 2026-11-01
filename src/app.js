@@ -1,3 +1,9 @@
+// Load environment variables before importing routes and middleware.
+require("dotenv").config({
+    path: require("node:path").resolve(__dirname, "../.env"),
+    quiet: true
+});
+
 const express =
     require("express");
 
