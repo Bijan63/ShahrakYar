@@ -1,14 +1,12 @@
 const fiscalPeriodService = require("../services/fiscalPeriod.service");
 
 
-// ======================================================
+
 // Error Status Mapper
 // ======================================================
 
 const getErrorStatus = (error) => {
-
     const message = error?.message || "";
-
 
     // --------------------------------------------------
     // 404 - Not Found
@@ -18,7 +16,6 @@ const getErrorStatus = (error) => {
         return 404;
     }
 
-
     // --------------------------------------------------
     // 409 - Conflict
     // --------------------------------------------------
@@ -27,29 +24,41 @@ const getErrorStatus = (error) => {
         message === "Fiscal period code already exists" ||
         message === "Another active fiscal period already exists" ||
         message === "Fiscal period cannot be deleted because it has financial dependencies" ||
-        message === "Fiscal period dates cannot be changed because the fiscal period has journal entries"
+        message === "Fiscal period dates cannot be changed because the fiscal period has financial history"
     ) {
         return 409;
     }
-
 
     // --------------------------------------------------
     // 400 - Bad Request
     // --------------------------------------------------
 
-    if (
-        message === "code is required" ||
-        message === "name is required" ||
-        message === "startDate is required" ||
-        message === "endDate is required" ||
-        message === "Invalid date" ||
-        message === "startDate must be before endDate" ||
-        message === "Invalid status" ||
-        message === "Fiscal period id is required"
-    ) {
+    const badRequestMessages = [
+        "Request body is required",
+        "code is required",
+        "name is required",
+        "startDate is required",
+        "endDate is required",
+        "Invalid date",
+        "Invalid Gregorian date",
+        "Date-time values must include Z or an explicit UTC offset",
+        "startDate must be before endDate",
+        "Invalid status",
+        "Fiscal period id is required",
+        "Existing fiscal period contains invalid dates"
+    ];
+
+    if (badRequestMessages.includes(message)) {
         return 400;
     }
 
+    if (
+        message.startsWith("Invalid Jalali fiscal period code:") ||
+        message.startsWith("startDate must match the start boundary of Jalali fiscal year") ||
+        message.startsWith("endDate must match the end boundary of Jalali fiscal year")
+    ) {
+        return 400;
+    }
 
     // --------------------------------------------------
     // 500 - Internal Server Error
@@ -57,6 +66,7 @@ const getErrorStatus = (error) => {
 
     return 500;
 };
+
 
 
 // ======================================================

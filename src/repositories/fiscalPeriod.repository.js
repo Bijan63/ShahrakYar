@@ -129,52 +129,86 @@ class FiscalPeriodRepository {
     // Get Usage Counts
     // ======================================================
     //
-    // Used by FiscalPeriodService lifecycle rules.
+    // Counts configuration dependencies and financial history.
     //
-    // We check every model that has a relation to FiscalPeriod:
+    // Configuration dependencies:
+    // - Account
+    // - FinancialAccount
+    // - Fund
+    // - PropertyAccount
     //
-    // 1. Account
-    // 2. FinancialAccount
-    // 3. Fund
-    // 4. JournalEntry
-    // 5. OpeningBalance
-    // 6. PropertyAccount
+    // Financial history:
+    // - JournalEntry (all statuses)
+    // - OpeningBalance (all statuses)
+    // - ChargePayment records linked to this period's
+    //   FinancialAccounts
+    // - Non-zero FinancialAccount.openingBalance values
+    //
+    // Configuration-only records do not block changing dates,
+    // but they continue to block deleting the fiscal period.
     //
     // ======================================================
 
     async getUsageCounts(id) {
 
-        const fiscalPeriod = await prisma.fiscalPeriod.findUnique({
+        const [fiscalPeriod, financialAccounts] =
+            await Promise.all([
 
-            where: {
-                id
-            },
+                prisma.fiscalPeriod.findUnique({
 
-            select: {
-
-                _count: {
+                    where: {
+                        id
+                    },
 
                     select: {
 
-                        accounts: true,
+                        _count: {
 
-                        financialAccounts: true,
+                            select: {
 
-                        funds: true,
+                                accounts: true,
 
-                        journalEntries: true,
+                                financialAccounts: true,
 
-                        openingBalances: true,
+                                funds: true,
 
-                        propertyAccounts: true
+                                journalEntries: true,
+
+                                openingBalances: true,
+
+                                propertyAccounts: true
+
+                            }
+
+                        }
 
                     }
 
-                }
+                }),
 
-            }
+                prisma.financialAccount.findMany({
 
-        });
+                    where: {
+                        fiscalPeriodId: id
+                    },
+
+                    select: {
+
+                        openingBalance: true,
+
+                        _count: {
+
+                            select: {
+                                chargePayments: true
+                            }
+
+                        }
+
+                    }
+
+                })
+
+            ]);
 
 
         if (!fiscalPeriod) {
@@ -184,19 +218,46 @@ class FiscalPeriodRepository {
         }
 
 
+        const chargePayments =
+            financialAccounts.reduce(
+                (total, financialAccount) =>
+                    total + financialAccount._count.chargePayments,
+                0
+            );
+
+
+        const nonZeroFinancialAccountOpeningBalances =
+            financialAccounts.filter(
+                financialAccount =>
+                    financialAccount.openingBalance !== null &&
+                    financialAccount.openingBalance !== undefined &&
+                    Number(financialAccount.openingBalance) !== 0
+            ).length;
+
+
         return {
 
-            accounts: fiscalPeriod._count.accounts,
+            accounts:
+                fiscalPeriod._count.accounts,
 
-            financialAccounts: fiscalPeriod._count.financialAccounts,
+            financialAccounts:
+                fiscalPeriod._count.financialAccounts,
 
-            funds: fiscalPeriod._count.funds,
+            funds:
+                fiscalPeriod._count.funds,
 
-            journalEntries: fiscalPeriod._count.journalEntries,
+            journalEntries:
+                fiscalPeriod._count.journalEntries,
 
-            openingBalances: fiscalPeriod._count.openingBalances,
+            openingBalances:
+                fiscalPeriod._count.openingBalances,
 
-            propertyAccounts: fiscalPeriod._count.propertyAccounts
+            propertyAccounts:
+                fiscalPeriod._count.propertyAccounts,
+
+            chargePayments,
+
+            nonZeroFinancialAccountOpeningBalances
 
         };
 
@@ -205,4 +266,5 @@ class FiscalPeriodRepository {
 }
 
 
-module.exports = new FiscalPeriodRepository();
+module.exports =
+    new FiscalPeriodRepository();
