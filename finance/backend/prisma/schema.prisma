@@ -1,0 +1,288 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model FiscalPeriod {
+  id                String             @id @default(uuid())
+  code              String             @unique
+  name              String
+  startDate         DateTime
+  endDate           DateTime
+  status            RecordStatus       @default(ACTIVE)
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  accounts          Account[]
+  financialAccounts FinancialAccount[]
+  funds             Fund[]
+  journalEntries    JournalEntry[]
+  openingBalances   OpeningBalance[]
+  propertyAccounts  PropertyAccount[]
+  cashFlowMappings  CashFlowMapping[]
+
+  @@index([startDate])
+  @@index([endDate])
+  @@index([status])
+}
+
+model Fund {
+  id                String             @id @default(uuid())
+  code              String             @unique
+  name              String
+  type              FundType
+  description       String?
+  status            RecordStatus       @default(ACTIVE)
+  fiscalPeriodId    String?
+  createdAt         DateTime           @default(now())
+  updatedAt         DateTime           @updatedAt
+  financialAccounts FinancialAccount[]
+  fiscalPeriod      FiscalPeriod?      @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  journalEntries    JournalEntry[]
+  propertyAccounts  PropertyAccount[]
+
+  @@index([type])
+  @@index([status])
+  @@index([fiscalPeriodId])
+}
+
+model PropertyAccount {
+  id             String        @id @default(uuid())
+  accountNumber  String        @unique
+  propertyId     String        @unique
+  name           String
+  status         RecordStatus  @default(ACTIVE)
+  fiscalPeriodId String?
+  fundId         String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+  fiscalPeriod   FiscalPeriod? @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  fund           Fund?         @relation(fields: [fundId], references: [id], onDelete: Restrict)
+
+  @@index([propertyId])
+  @@index([status])
+  @@index([fiscalPeriodId])
+  @@index([fundId])
+}
+
+model Account {
+  id                            String                 @id @default(uuid())
+  code                          String
+  name                          String
+  type                          AccountType
+  description                   String?
+  isActive                      Boolean                @default(true)
+  parentId                      String?
+  fiscalPeriodId                String
+  createdAt                     DateTime               @default(now())
+  updatedAt                     DateTime               @updatedAt
+  fiscalPeriod                  FiscalPeriod           @relation(fields: [fiscalPeriodId], references: [id])
+  parent                        Account?               @relation("AccountHierarchy", fields: [parentId], references: [id], onDelete: Restrict)
+  children                      Account[]              @relation("AccountHierarchy")
+  financialAccounts             FinancialAccount?
+  journalEntryLines             JournalEntryLine[]
+  openingBalances               OpeningBalance[]
+  cashFlowClassification        CashFlowClassification @default(NONE)
+  cashFlowMappingsAsCounterpart CashFlowMapping[]      @relation("CashFlowMappingCounterpartAccount")
+  cashFlowMappingsAsCash        CashFlowMapping[]      @relation("CashFlowMappingCashAccount")
+
+  @@unique([fiscalPeriodId, code])
+  @@index([type])
+  @@index([parentId])
+  @@index([isActive])
+  @@index([fiscalPeriodId])
+}
+
+model CashFlowItem {
+  id             String                 @id @default(uuid())
+  code           String                 @unique
+  name           String
+  classification CashFlowClassification
+  isActive       Boolean                @default(true)
+  sortOrder      Int                    @default(0)
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  mappings CashFlowMapping[]
+
+  @@index([classification])
+  @@index([isActive])
+  @@index([sortOrder])
+}
+
+model CashFlowMapping {
+  id                   String            @id @default(uuid())
+  fiscalPeriodId       String
+  counterpartAccountId String
+  cashAccountId        String?
+  cashFlowItemId       String
+  direction            CashFlowDirection
+  priority             Int               @default(100)
+  isActive             Boolean           @default(true)
+  createdAt            DateTime          @default(now())
+  updatedAt            DateTime          @updatedAt
+
+  fiscalPeriod       FiscalPeriod @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  counterpartAccount Account      @relation("CashFlowMappingCounterpartAccount", fields: [counterpartAccountId], references: [id], onDelete: Restrict)
+  cashAccount        Account?     @relation("CashFlowMappingCashAccount", fields: [cashAccountId], references: [id], onDelete: Restrict)
+  cashFlowItem       CashFlowItem @relation(fields: [cashFlowItemId], references: [id], onDelete: Restrict)
+
+  @@index([fiscalPeriodId])
+  @@index([counterpartAccountId])
+  @@index([cashAccountId])
+  @@index([cashFlowItemId])
+  @@index([isActive])
+  @@index([fiscalPeriodId, priority])
+  @@index([fiscalPeriodId, cashAccountId, counterpartAccountId, direction, priority])
+}
+
+model FinancialAccount {
+  id             String               @id @default(uuid())
+  code           String               @unique
+  name           String
+  type           FinancialAccountType
+  bankName       String?
+  accountNumber  String?
+  cardNumber     String?
+  iban           String?
+  openingBalance Decimal              @default(0) @db.Decimal(18, 2)
+  status         RecordStatus         @default(ACTIVE)
+  fiscalPeriodId String?
+  fundId         String?
+  createdAt      DateTime             @default(now())
+  updatedAt      DateTime             @updatedAt
+  accountId      String?              @unique
+  chargePayments ChargePayment[]
+  account        Account?             @relation(fields: [accountId], references: [id], onDelete: Restrict)
+  fiscalPeriod   FiscalPeriod?        @relation(fields: [fiscalPeriodId], references: [id], onDelete: Restrict)
+  fund           Fund?                @relation(fields: [fundId], references: [id], onDelete: Restrict)
+
+  @@index([type])
+  @@index([status])
+  @@index([fiscalPeriodId])
+  @@index([fundId])
+}
+
+model ChargePayment {
+  id                 String            @id @default(uuid())
+  unitAccountId      String
+  chargeId           String?
+  residentId         String?
+  financialAccountId String?
+  journalEntryId     String?
+  amount             Decimal           @db.Decimal(18, 2)
+  paymentDate        DateTime          @default(now())
+  description        String?
+  createdAt          DateTime          @default(now())
+  updatedAt          DateTime          @updatedAt
+  financialAccount   FinancialAccount? @relation(fields: [financialAccountId], references: [id], onDelete: Restrict)
+  journalEntry       JournalEntry?     @relation(fields: [journalEntryId], references: [id], onDelete: Restrict)
+
+  @@index([unitAccountId])
+  @@index([chargeId])
+  @@index([residentId])
+  @@index([financialAccountId])
+  @@index([journalEntryId])
+  @@index([paymentDate])
+}
+
+model JournalEntry {
+  id             String             @id @default(uuid())
+  entryNumber    String             @unique
+  entryDate      DateTime
+  description    String?
+  status         JournalEntryStatus @default(DRAFT)
+  fiscalPeriodId String
+  fundId         String?
+  createdAt      DateTime           @default(now())
+  updatedAt      DateTime           @updatedAt
+  chargePayments ChargePayment[]
+  fiscalPeriod   FiscalPeriod       @relation(fields: [fiscalPeriodId], references: [id])
+  fund           Fund?              @relation(fields: [fundId], references: [id], onDelete: Restrict)
+  lines          JournalEntryLine[]
+
+  @@index([entryDate])
+  @@index([status])
+  @@index([fiscalPeriodId])
+  @@index([fundId])
+}
+
+model JournalEntryLine {
+  id             String       @id @default(uuid())
+  journalEntryId String
+  accountId      String
+  description    String?
+  debit          Decimal      @default(0) @db.Decimal(18, 2)
+  credit         Decimal      @default(0) @db.Decimal(18, 2)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  account        Account      @relation(fields: [accountId], references: [id])
+  journalEntry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+
+  @@index([journalEntryId])
+  @@index([accountId])
+}
+
+model OpeningBalance {
+  id             String       @id @default(uuid())
+  fiscalPeriodId String
+  accountId      String
+  debit          Decimal      @default(0) @db.Decimal(18, 2)
+  credit         Decimal      @default(0) @db.Decimal(18, 2)
+  description    String?
+  status         RecordStatus @default(ACTIVE)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  account        Account      @relation(fields: [accountId], references: [id])
+  fiscalPeriod   FiscalPeriod @relation(fields: [fiscalPeriodId], references: [id])
+
+  @@unique([fiscalPeriodId, accountId])
+  @@index([fiscalPeriodId])
+  @@index([accountId])
+  @@index([status])
+}
+
+enum RecordStatus {
+  ACTIVE
+  INACTIVE
+}
+
+enum FundType {
+  OPERATING
+  CAPITAL
+}
+
+enum FinancialAccountType {
+  BANK
+  CASH
+  POS
+}
+
+enum AccountType {
+  ASSET
+  LIABILITY
+  EQUITY
+  REVENUE
+  EXPENSE
+}
+
+enum CashFlowClassification {
+  NONE
+  OPERATING
+  INVESTING
+  FINANCING
+}
+
+enum JournalEntryStatus {
+  DRAFT
+  POSTED
+  CANCELLED
+}
+
+enum CashFlowDirection {
+  INFLOW
+  OUTFLOW
+}
