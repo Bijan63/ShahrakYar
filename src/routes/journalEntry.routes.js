@@ -292,13 +292,20 @@ router.get(
  *         schema:
  *           type: string
  *           format: uuid
+ *
+
  *     responses:
  *       200:
  *         description: Journal entry posted successfully
  *       400:
- *         description: Journal entry cannot be posted
+ *         description: Invalid journal entry data or validation failure
  *       404:
- *         description: Journal entry not found
+ *         description: Journal entry, fiscal period or related record not found
+ *       409:
+ *         description: Journal entry is not in DRAFT status or fiscal period is inactive
+ *       500:
+ *         description: Internal server error
+
  */
 router.post(
     "/:id/post",
@@ -400,8 +407,14 @@ router.post(
  *     responses:
  *       200:
  *         description: Journal entry updated successfully
+ *       400:
+ *         description: Invalid journal entry data
  *       404:
- *         description: Journal entry not found
+ *         description: Journal entry or related record not found
+ *       409:
+ *         description: Journal entry cannot be modified because of its current status or a data conflict
+ *       500:
+ *         description: Internal server error
  */
 router.put(
     "/:id",
@@ -435,10 +448,22 @@ router.put(
  *         description: Journal entry deleted successfully
  *       404:
  *         description: Journal entry not found
+ *       409:
+ *         description: Only DRAFT journal entries can be deleted
+ *       500:
+ *         description: Internal server error
  */
 router.delete(
     "/:id",
     deleteJournalEntry
+);
+
+// ======================================================
+// Journal Entry Error Handler
+// ======================================================
+
+router.use(
+    require("../middleware/journalEntryError.middleware")
 );
 
 

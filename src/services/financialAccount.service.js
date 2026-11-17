@@ -406,7 +406,9 @@ class FinancialAccountService {
     //
     // 2. Its linked General Ledger Account has at least
     //    one POSTED JournalEntryLine.
-    //
+    ////    JournalEntryLine records.
+    // 3. Its linked Account has OpeningBalance records.
+    // 4. FinancialAccount has a non-zero openingBalance.
     // This method is intentionally centralized so that
     // UPDATE and DELETE use the same lifecycle rule.
     //
@@ -484,7 +486,28 @@ class FinancialAccountService {
 
         }
 
+        // --------------------------------------------------
+        // Opening Balance Records History
+        // --------------------------------------------------
 
+        let openingBalanceRecordCount = 0;
+
+        if (financialAccount.accountId) {
+
+            openingBalanceRecordCount =
+                await prisma.openingBalance.count({
+
+                    where: {
+                        accountId: financialAccount.accountId
+                    }
+
+                });
+
+        }
+
+        const hasOpeningBalanceRecords =
+
+        openingBalanceRecordCount > 0;
         // --------------------------------------------------
         // Opening Balance History
         // --------------------------------------------------
@@ -506,6 +529,10 @@ class FinancialAccountService {
 
             postedJournalEntryLineCount,
 
+            openingBalanceRecordCount,
+
+            hasOpeningBalanceRecords,
+
             hasOpeningBalance,
 
             hasChargePaymentHistory:
@@ -515,9 +542,12 @@ class FinancialAccountService {
                 postedJournalEntryLineCount > 0,
 
             hasFinancialHistory:
-                chargePaymentCount > 0 ||
-                postedJournalEntryLineCount > 0 ||
-                hasOpeningBalance
+            chargePaymentCount > 0 ||
+            postedJournalEntryLineCount > 0 ||
+            hasOpeningBalance ||
+            hasOpeningBalanceRecords
+
+
 
         };
 

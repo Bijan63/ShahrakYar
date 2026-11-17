@@ -1,12 +1,25 @@
+"use strict";
+
 const prisma =
     require("../config/prisma");
+
+
+const fundRelations = {
+
+    fiscalPeriod: true,
+
+    propertyAccounts: true,
+
+    financialAccounts: true
+
+};
 
 
 class FundRepository {
 
 
     // ======================================================
-    // Find all Funds
+    // Find All Funds
     // ======================================================
 
     async findAll() {
@@ -17,15 +30,7 @@ class FundRepository {
                 createdAt: "desc"
             },
 
-            include: {
-
-                fiscalPeriod: true,
-
-                propertyAccounts: true,
-
-                financialAccounts: true
-
-            }
+            include: fundRelations
 
         });
 
@@ -44,15 +49,7 @@ class FundRepository {
                 id
             },
 
-            include: {
-
-                fiscalPeriod: true,
-
-                propertyAccounts: true,
-
-                financialAccounts: true
-
-            }
+            include: fundRelations
 
         });
 
@@ -71,15 +68,7 @@ class FundRepository {
                 code
             },
 
-            include: {
-
-                fiscalPeriod: true,
-
-                propertyAccounts: true,
-
-                financialAccounts: true
-
-            }
+            include: fundRelations
 
         });
 
@@ -102,13 +91,69 @@ class FundRepository {
 
             },
 
-            include: {
+            include: fundRelations
 
-                fiscalPeriod: true,
+        });
 
-                propertyAccounts: true,
+    }
 
-                financialAccounts: true
+
+    // ======================================================
+    // Find Fiscal Period by ID
+    // ======================================================
+
+    async findFiscalPeriodById(id) {
+
+        return await prisma.fiscalPeriod.findUnique({
+
+            where: {
+                id
+            },
+
+            select: {
+
+                id: true,
+
+                code: true,
+
+                name: true,
+
+                status: true
+
+            }
+
+        });
+
+    }
+
+
+    // ======================================================
+    // Get Fund Usage Counts
+    // ======================================================
+
+    async getUsageCounts(id) {
+
+        return await prisma.fund.findUnique({
+
+            where: {
+                id
+            },
+
+            select: {
+
+                _count: {
+
+                    select: {
+
+                        propertyAccounts: true,
+
+                        financialAccounts: true,
+
+                        journalEntries: true
+
+                    }
+
+                }
 
             }
 
@@ -127,15 +172,7 @@ class FundRepository {
 
             data,
 
-            include: {
-
-                fiscalPeriod: true,
-
-                propertyAccounts: true,
-
-                financialAccounts: true
-
-            }
+            include: fundRelations
 
         });
 
@@ -156,15 +193,7 @@ class FundRepository {
 
             data,
 
-            include: {
-
-                fiscalPeriod: true,
-
-                propertyAccounts: true,
-
-                financialAccounts: true
-
-            }
+            include: fundRelations
 
         });
 
@@ -189,6 +218,10 @@ class FundRepository {
 
 }
 
+
+// ======================================================
+// Export
+// ======================================================
 
 module.exports =
     new FundRepository();

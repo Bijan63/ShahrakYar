@@ -1,6 +1,128 @@
+"use strict";
+
 const fundRepository =
     require("../repositories/fund.repository");
 
+
+// ======================================================
+// Constants
+// ======================================================
+
+const ALLOWED_TYPES = [
+
+    "OPERATING",
+
+    "CAPITAL"
+
+];
+
+
+const ALLOWED_STATUSES = [
+
+    "ACTIVE",
+
+    "INACTIVE"
+
+];
+
+
+// ======================================================
+// Validation Helpers
+// ======================================================
+
+const validateObject = (data) => {
+
+    if (
+        !data ||
+        typeof data !== "object" ||
+        Array.isArray(data)
+    ) {
+
+        throw new Error(
+            "Request body is required"
+        );
+
+    }
+
+};
+
+
+const normalizeRequiredString = (
+    value,
+    field
+) => {
+
+    if (
+        typeof value !== "string" ||
+        !value.trim()
+    ) {
+
+        throw new Error(
+            `${field} is required`
+        );
+
+    }
+
+    return value.trim();
+
+};
+
+
+const normalizeDescription = (value) => {
+
+    if (
+        value === undefined ||
+        value === null
+    ) {
+
+        return null;
+
+    }
+
+
+    if (typeof value !== "string") {
+
+        throw new Error(
+            "description must be a string"
+        );
+
+    }
+
+
+    return value.trim() || null;
+
+};
+
+
+const validateType = (type) => {
+
+    if (!ALLOWED_TYPES.includes(type)) {
+
+        throw new Error(
+            "Invalid fund type"
+        );
+
+    }
+
+};
+
+
+const validateStatus = (status) => {
+
+    if (!ALLOWED_STATUSES.includes(status)) {
+
+        throw new Error(
+            "Invalid fund status"
+        );
+
+    }
+
+};
+
+
+// ======================================================
+// Fund Service
+// ======================================================
 
 class FundService {
 
@@ -21,6 +143,15 @@ class FundService {
     // ======================================================
 
     async getById(id) {
+
+        if (!id) {
+
+            throw new Error(
+                "Fund ID is required"
+            );
+
+        }
+
 
         const fund =
             await fundRepository.findById(id);
@@ -46,8 +177,17 @@ class FundService {
 
     async getByCode(code) {
 
+        const normalizedCode =
+            normalizeRequiredString(
+                code,
+                "code"
+            );
+
+
         const fund =
-            await fundRepository.findByCode(code);
+            await fundRepository.findByCode(
+                normalizedCode
+            );
 
 
         if (!fund) {
@@ -65,77 +205,146 @@ class FundService {
 
 
     // ======================================================
+    // Validate Fiscal Period
+    // ======================================================
+
+    async validateFiscalPeriodId(id) {
+
+        if (id === null) {
+
+            return null;
+
+        }
+
+
+        if (
+            typeof id !== "string" ||
+            !id.trim()
+        ) {
+
+            throw new Error(
+                "Invalid fiscal period ID"
+            );
+
+        }
+
+
+        const fiscalPeriod =
+            await fundRepository.findFiscalPeriodById(
+                id.trim()
+            );
+
+
+        if (!fiscalPeriod) {
+
+            throw new Error(
+                "Fiscal period not found"
+            );
+
+        }
+
+
+        return fiscalPeriod.id;
+
+    }
+
+
+    // ======================================================
+    // Get Fund Usage Counts
+    // ======================================================
+
+    async getUsageCounts(id) {
+
+        const result =
+            await fundRepository.getUsageCounts(id);
+
+
+        if (!result) {
+
+            throw new Error(
+                "Fund not found"
+            );
+
+        }
+
+
+        return result._count;
+
+    }
+
+
+    // ======================================================
     // Create Fund
     // ======================================================
 
     async create(data) {
 
-
-        // --------------------------------------------------
-        // Validate Request Body
-        // --------------------------------------------------
-
-        if (!data) {
-
-            throw new Error(
-                "Request body is required"
-            );
-
-        }
+        validateObject(data);
 
 
         // --------------------------------------------------
         // Validate Code
         // --------------------------------------------------
 
-        if (!data.code) {
-
-            throw new Error(
-                "code is required"
+        const code =
+            normalizeRequiredString(
+                data.code,
+                "code"
             );
-
-        }
 
 
         // --------------------------------------------------
         // Validate Name
         // --------------------------------------------------
 
-        if (!data.name) {
-
-            throw new Error(
-                "name is required"
+        const name =
+            normalizeRequiredString(
+                data.name,
+                "name"
             );
-
-        }
 
 
         // --------------------------------------------------
         // Validate Type
         // --------------------------------------------------
 
-        if (!data.type) {
+        validateType(data.type);
 
-            throw new Error(
-                "type is required"
+
+        // --------------------------------------------------
+        // Validate Status
+        // --------------------------------------------------
+
+        const status =
+            data.status === undefined
+                ? "ACTIVE"
+                : data.status;
+
+
+        validateStatus(status);
+
+
+        // --------------------------------------------------
+        // Validate Description
+        // --------------------------------------------------
+
+        const description =
+            normalizeDescription(
+                data.description
             );
 
-        }
 
+        // --------------------------------------------------
+        // Validate Fiscal Period
+        // --------------------------------------------------
 
-        const allowedTypes = [
-            "OPERATING",
-            "CAPITAL"
-        ];
-
-
-        if (!allowedTypes.includes(data.type)) {
-
-            throw new Error(
-                "Invalid fund type"
-            );
-
-        }
+        const fiscalPeriodId =
+            data.fiscalPeriodId === undefined ||
+            data.fiscalPeriodId === null
+                ? null
+                : await this.validateFiscalPeriodId(
+                    data.fiscalPeriodId
+                );
 
 
         // --------------------------------------------------
@@ -144,7 +353,7 @@ class FundService {
 
         const existing =
             await fundRepository.findByCode(
-                data.code
+                code
             );
 
 
@@ -158,30 +367,42 @@ class FundService {
 
 
         // --------------------------------------------------
-        // Create
+        // Create Fund
         // --------------------------------------------------
 
-        return await fundRepository.create({
+        try {
 
-            code:
-                data.code,
+            return await fundRepository.create({
 
-            name:
-                data.name,
+                code,
 
-            type:
-                data.type,
+                name,
 
-            description:
-                data.description || null,
+                type: data.type,
 
-            status:
-                data.status || "ACTIVE",
+                description,
 
-            fiscalPeriodId:
-                data.fiscalPeriodId || null
+                status,
 
-        });
+                fiscalPeriodId
+
+            });
+
+        } catch (error) {
+
+            // Handle concurrent duplicate insertion
+
+            if (error.code === "P2002") {
+
+                throw new Error(
+                    "Fund code already exists"
+                );
+
+            }
+
+            throw error;
+
+        }
 
     }
 
@@ -192,8 +413,15 @@ class FundService {
 
     async update(id, data) {
 
+        validateObject(data);
 
-        await this.getById(id);
+
+        // --------------------------------------------------
+        // Find Existing Fund
+        // --------------------------------------------------
+
+        const currentFund =
+            await this.getById(id);
 
 
         const updateData = {};
@@ -205,9 +433,16 @@ class FundService {
 
         if (data.code !== undefined) {
 
+            const code =
+                normalizeRequiredString(
+                    data.code,
+                    "code"
+                );
+
+
             const duplicate =
                 await fundRepository.findByCode(
-                    data.code
+                    code
                 );
 
 
@@ -223,8 +458,7 @@ class FundService {
             }
 
 
-            updateData.code =
-                data.code;
+            updateData.code = code;
 
         }
 
@@ -236,7 +470,10 @@ class FundService {
         if (data.name !== undefined) {
 
             updateData.name =
-                data.name;
+                normalizeRequiredString(
+                    data.name,
+                    "name"
+                );
 
         }
 
@@ -247,23 +484,7 @@ class FundService {
 
         if (data.type !== undefined) {
 
-            const allowedTypes = [
-                "OPERATING",
-                "CAPITAL"
-            ];
-
-
-            if (
-                !allowedTypes.includes(
-                    data.type
-                )
-            ) {
-
-                throw new Error(
-                    "Invalid fund type"
-                );
-
-            }
+            validateType(data.type);
 
 
             updateData.type =
@@ -279,7 +500,9 @@ class FundService {
         if (data.description !== undefined) {
 
             updateData.description =
-                data.description;
+                normalizeDescription(
+                    data.description
+                );
 
         }
 
@@ -290,23 +513,7 @@ class FundService {
 
         if (data.status !== undefined) {
 
-            const allowedStatuses = [
-                "ACTIVE",
-                "INACTIVE"
-            ];
-
-
-            if (
-                !allowedStatuses.includes(
-                    data.status
-                )
-            ) {
-
-                throw new Error(
-                    "Invalid fund status"
-                );
-
-            }
+            validateStatus(data.status);
 
 
             updateData.status =
@@ -323,20 +530,94 @@ class FundService {
             data.fiscalPeriodId !== undefined
         ) {
 
+            const newFiscalPeriodId =
+                await this.validateFiscalPeriodId(
+                    data.fiscalPeriodId
+                );
+
+
+            const currentFiscalPeriodId =
+                currentFund.fiscalPeriodId || null;
+
+
+            // --------------------------------------------------
+            // Prevent Period Change When Fund Has Dependencies
+            // --------------------------------------------------
+
+            if (
+                newFiscalPeriodId !==
+                currentFiscalPeriodId
+            ) {
+
+                const usage =
+                    await this.getUsageCounts(id);
+
+
+                const hasDependencies =
+
+                    usage.propertyAccounts > 0 ||
+
+                    usage.financialAccounts > 0 ||
+
+                    usage.journalEntries > 0;
+
+
+                if (hasDependencies) {
+
+                    throw new Error(
+                        "Cannot change fund fiscal period while linked records exist"
+                    );
+
+                }
+
+            }
+
+
             updateData.fiscalPeriodId =
-                data.fiscalPeriodId;
+                newFiscalPeriodId;
 
         }
 
 
         // --------------------------------------------------
-        // Update
+        // Prevent Empty Update
         // --------------------------------------------------
 
-        return await fundRepository.update(
-            id,
-            updateData
-        );
+        if (
+            Object.keys(updateData).length === 0
+        ) {
+
+            throw new Error(
+                "No fields provided for update"
+            );
+
+        }
+
+
+        // --------------------------------------------------
+        // Update Fund
+        // --------------------------------------------------
+
+        try {
+
+            return await fundRepository.update(
+                id,
+                updateData
+            );
+
+        } catch (error) {
+
+            if (error.code === "P2002") {
+
+                throw new Error(
+                    "Fund code already exists"
+                );
+
+            }
+
+            throw error;
+
+        }
 
     }
 
@@ -350,9 +631,57 @@ class FundService {
         await this.getById(id);
 
 
-        return await fundRepository.delete(
-            id
-        );
+        // --------------------------------------------------
+        // Check Dependencies
+        // --------------------------------------------------
+
+        const usage =
+            await this.getUsageCounts(id);
+
+
+        const hasDependencies =
+
+            usage.propertyAccounts > 0 ||
+
+            usage.financialAccounts > 0 ||
+
+            usage.journalEntries > 0;
+
+
+        if (hasDependencies) {
+
+            throw new Error(
+                "Cannot delete fund because linked financial records exist"
+            );
+
+        }
+
+
+        // --------------------------------------------------
+        // Delete Fund
+        // --------------------------------------------------
+
+        try {
+
+            return await fundRepository.delete(
+                id
+            );
+
+        } catch (error) {
+
+            // Database-level protection
+
+            if (error.code === "P2003") {
+
+                throw new Error(
+                    "Cannot delete fund because linked records exist"
+                );
+
+            }
+
+            throw error;
+
+        }
 
     }
 

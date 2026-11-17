@@ -1,3 +1,4 @@
+
 const prisma = require("../config/prisma");
 
 
@@ -23,9 +24,7 @@ class JournalEntryRepository {
                 },
 
                 include: {
-
                     account: true
-
                 }
 
             }
@@ -39,16 +38,12 @@ class JournalEntryRepository {
     // Find All Journal Entries
     // ======================================================
 
-    async findAll(
-        client = prisma
-    ) {
+    async findAll(client = prisma) {
 
         return await client.journalEntry.findMany({
 
             orderBy: {
-
                 entryDate: "desc"
-
             },
 
             include: this.getInclude()
@@ -62,10 +57,7 @@ class JournalEntryRepository {
     // Find Journal Entry by ID
     // ======================================================
 
-    async findById(
-        id,
-        client = prisma
-    ) {
+    async findById(id, client = prisma) {
 
         return await client.journalEntry.findUnique({
 
@@ -79,15 +71,42 @@ class JournalEntryRepository {
 
     }
 
+    // ======================================================
+    // Lock Journal Entry for Posting
+    // ======================================================
+
+    async lockById(id, client = prisma) {
+
+        if (!id) {
+
+            throw new Error(
+                "Journal entry ID is required"
+            );
+
+        }
+
+        const rows =
+            await client.$queryRaw`
+
+                SELECT "id"
+
+                FROM "JournalEntry"
+
+                WHERE "id" = ${id}
+
+                FOR UPDATE
+
+            `;
+
+        return rows.length === 1;
+
+    }
 
     // ======================================================
     // Find Journal Entry by Entry Number
     // ======================================================
 
-    async findByEntryNumber(
-        entryNumber,
-        client = prisma
-    ) {
+    async findByEntryNumber(entryNumber, client = prisma) {
 
         return await client.journalEntry.findUnique({
 
@@ -106,10 +125,7 @@ class JournalEntryRepository {
     // Find Journal Entries by Fiscal Period
     // ======================================================
 
-    async findByFiscalPeriodId(
-        fiscalPeriodId,
-        client = prisma
-    ) {
+    async findByFiscalPeriodId(fiscalPeriodId, client = prisma) {
 
         return await client.journalEntry.findMany({
 
@@ -118,9 +134,7 @@ class JournalEntryRepository {
             },
 
             orderBy: {
-
                 entryDate: "desc"
-
             },
 
             include: this.getInclude()
@@ -134,10 +148,7 @@ class JournalEntryRepository {
     // Find Journal Entries by Fund
     // ======================================================
 
-    async findByFundId(
-        fundId,
-        client = prisma
-    ) {
+    async findByFundId(fundId, client = prisma) {
 
         return await client.journalEntry.findMany({
 
@@ -146,9 +157,7 @@ class JournalEntryRepository {
             },
 
             orderBy: {
-
                 entryDate: "desc"
-
             },
 
             include: this.getInclude()
@@ -162,10 +171,7 @@ class JournalEntryRepository {
     // Create Journal Entry
     // ======================================================
 
-    async create(
-        data,
-        client = prisma
-    ) {
+    async create(data, client = prisma) {
 
         const {
             lines,
@@ -180,9 +186,7 @@ class JournalEntryRepository {
                 ...journalEntryData,
 
                 lines: {
-
                     create: lines
-
                 }
 
             },
@@ -197,12 +201,25 @@ class JournalEntryRepository {
     // ======================================================
     // Update Journal Entry
     // ======================================================
+    //
+    // Only DRAFT entries can be modified.
+    //
+    // The status condition is checked atomically
+    // by the database, not only by the service.
+    //
+    // This protects against concurrent posting.
+    //
 
-    async update(
-        id,
-        data,
-        client = prisma
-    ) {
+    async update(id, data, client = prisma) {
+
+        if (!id) {
+
+            throw new Error(
+                "Journal entry ID is required"
+            );
+
+        }
+
 
         const {
             lines,
@@ -210,74 +227,83 @@ class JournalEntryRepository {
         } = data;
 
 
-        // --------------------------------------------------
-        // Update without Lines
-        // --------------------------------------------------
-
-        if (lines === undefined) {
-
-            return await client.journalEntry.update({
-
-                where: {
-                    id
-                },
-
-                data: journalEntryData,
-
-                include: this.getInclude()
-
-            });
-
-        }
-
-
-        // --------------------------------------------------
-        // Update with Lines
-        // --------------------------------------------------
-
         const executeUpdate = async (tx) => {
 
-            await tx.journalEntry.update({
+            // --------------------------------------------------
+            // Atomic DRAFT Protection
+            // --------------------------------------------------
 
-                where: {
-                    id
-                },
+            const result =
+                await tx.journalEntry.updateMany({
 
-                data: journalEntryData
+                    where: {
 
-            });
+                        id,
+
+                        status: "DRAFT"
+
+                    },
+
+                    data: journalEntryData
+
+                });
 
 
-            await tx.journalEntryLine.deleteMany({
+            if (result.count !== 1) {
 
-                where: {
-                    journalEntryId: id
+                throw new Error(
+                    "Only DRAFT journal entries can be modified"
+                );
+
+            }
+
+
+            // --------------------------------------------------
+            // Replace Lines When Supplied
+            // --------------------------------------------------
+
+            if (lines !== undefined) {
+
+                await tx.journalEntryLine.deleteMany({
+
+                    where: {
+                        journalEntryId: id
+                    }
+
+                });
+
+
+                if (lines.length > 0) {
+
+                    await tx.journalEntryLine.createMany({
+
+                        data: lines.map(line => ({
+
+                            journalEntryId: id,
+
+                            accountId: line.accountId,
+
+                            description:
+                                line.description ?? null,
+
+                            debit:
+                                line.debit ?? 0,
+
+                            credit:
+                                line.credit ?? 0
+
+                        }))
+
+                    });
+
                 }
 
-            });
+            }
 
 
-            await tx.journalEntryLine.createMany({
-
-                data: lines.map(line => ({
-
-                    journalEntryId: id,
-
-                    accountId: line.accountId,
-
-                    description:
-                        line.description ?? null,
-
-                    debit:
-                        line.debit ?? 0,
-
-                    credit:
-                        line.credit ?? 0
-
-                }))
-
-            });
-
+            // --------------------------------------------------
+            // Return Updated Entry
+            // --------------------------------------------------
 
             return await tx.journalEntry.findUnique({
 
@@ -295,10 +321,6 @@ class JournalEntryRepository {
         // --------------------------------------------------
         // External Transaction Client
         // --------------------------------------------------
-        //
-        // If caller already provided tx, do NOT create
-        // another transaction.
-        //
 
         if (client !== prisma) {
 
@@ -308,12 +330,8 @@ class JournalEntryRepository {
 
 
         // --------------------------------------------------
-        // Normal Operation
+        // Internal Transaction
         // --------------------------------------------------
-        //
-        // When no external transaction exists, create
-        // an internal transaction.
-        //
 
         return await prisma.$transaction(
 
@@ -332,21 +350,10 @@ class JournalEntryRepository {
     // Atomic Update Journal Entry Status
     // ======================================================
     //
-    // Only a DRAFT entry can be transitioned.
-    //
-    // This prevents concurrent requests from posting
-    // the same Journal Entry more than once.
+    // Only DRAFT entries can change status.
     //
 
-    async updateStatus(
-        id,
-        status,
-        client = prisma
-    ) {
-
-        // --------------------------------------------------
-        // Validate ID
-        // --------------------------------------------------
+    async updateStatus(id, status, client = prisma) {
 
         if (!id) {
 
@@ -357,10 +364,6 @@ class JournalEntryRepository {
         }
 
 
-        // --------------------------------------------------
-        // Validate Status
-        // --------------------------------------------------
-
         if (!status) {
 
             throw new Error(
@@ -369,20 +372,6 @@ class JournalEntryRepository {
 
         }
 
-
-        // --------------------------------------------------
-        // Atomic Status Transition
-        // --------------------------------------------------
-        //
-        // Important:
-        //
-        // status: "DRAFT"
-        //
-        // is part of the UPDATE condition.
-        //
-        // Therefore only one concurrent request can
-        // successfully change the status.
-        //
 
         const result =
             await client.journalEntry.updateMany({
@@ -404,10 +393,6 @@ class JournalEntryRepository {
             });
 
 
-        // --------------------------------------------------
-        // No Row Updated
-        // --------------------------------------------------
-
         if (result.count !== 1) {
 
             throw new Error(
@@ -416,10 +401,6 @@ class JournalEntryRepository {
 
         }
 
-
-        // --------------------------------------------------
-        // Return Updated Journal Entry
-        // --------------------------------------------------
 
         return await client.journalEntry.findUnique({
 
@@ -437,19 +418,106 @@ class JournalEntryRepository {
     // ======================================================
     // Delete Journal Entry
     // ======================================================
+    //
+    // Only DRAFT entries can be deleted.
+    //
+    // POSTED and CANCELLED entries are preserved.
+    //
+    // The condition is enforced atomically by the database.
+    //
 
-    async delete(
-        id,
-        client = prisma
-    ) {
+    async delete(id, client = prisma) {
 
-        return await client.journalEntry.delete({
+        if (!id) {
 
-            where: {
-                id
+            throw new Error(
+                "Journal entry ID is required"
+            );
+
+        }
+
+
+        const executeDelete = async (tx) => {
+
+            // --------------------------------------------------
+            // Find Existing Entry
+            // --------------------------------------------------
+
+            const existing =
+                await tx.journalEntry.findUnique({
+
+                    where: {
+                        id
+                    }
+
+                });
+
+
+            if (!existing) {
+
+                throw new Error(
+                    "Journal entry not found"
+                );
+
             }
 
-        });
+
+            // --------------------------------------------------
+            // Atomic DRAFT-Only Deletion
+            // --------------------------------------------------
+
+            const result =
+                await tx.journalEntry.deleteMany({
+
+                    where: {
+
+                        id,
+
+                        status: "DRAFT"
+
+                    }
+
+                });
+
+
+            if (result.count !== 1) {
+
+                throw new Error(
+                    "Only DRAFT journal entries can be deleted"
+                );
+
+            }
+
+
+            return existing;
+
+        };
+
+
+        // --------------------------------------------------
+        // External Transaction Client
+        // --------------------------------------------------
+
+        if (client !== prisma) {
+
+            return await executeDelete(client);
+
+        }
+
+
+        // --------------------------------------------------
+        // Internal Transaction
+        // --------------------------------------------------
+
+        return await prisma.$transaction(
+
+            async (tx) => {
+
+                return await executeDelete(tx);
+
+            }
+
+        );
 
     }
 

@@ -4,12 +4,240 @@ const journalEntryRepository =
 const prisma =
     require("../config/prisma");
 
+const {
+    normalizeDigits,
+    parseJalaliDate,
+    jalaliToGregorianParts,
+    zonedDateTimeToUtc,
+    DEFAULT_TIME_ZONE
+} = require("../utils/jalaliDate");
+
 
 // ======================================================
 // Journal Entry Service
 // ======================================================
 
 class JournalEntryService {
+
+
+    // ======================================================
+    // Normalize Journal Entry Date
+    // ======================================================
+    //
+    // API date input contract:
+    //
+    // 1. Jalali date:       1405/01/01
+    // 2. Jalali date/time:  1405/01/01 12:30:00
+    //    Persian and Arabic-Indic digits are accepted.
+    // 3. Gregorian date:   2026-03-21
+    //    Date-only values are interpreted at midnight in
+    //    Asia/Tehran, not UTC midnight.
+    // 4. ISO timestamp with Z/offset is treated as an
+    //    absolute instant and preserved.
+    // 5. Date objects and numeric epoch milliseconds are
+    //    accepted for backward compatibility.
+    //
+    // IMPORTANT:
+    // A slash-separated date is explicitly Jalali.
+    // A hyphen-separated date-only value is Gregorian ISO.
+    // This avoids ambiguous interpretation of YYYY-MM-DD.
+    //
+    // ======================================================
+
+    normalizeEntryDate(value) {
+
+        if (value instanceof Date) {
+
+            if (Number.isNaN(value.getTime())) {
+                throw new Error("Invalid entryDate");
+            }
+
+            return new Date(value.getTime());
+
+        }
+
+
+        if (typeof value === "number") {
+
+            const date = new Date(value);
+
+            if (Number.isNaN(date.getTime())) {
+                throw new Error("Invalid entryDate");
+            }
+
+            return date;
+
+        }
+
+
+        if (typeof value !== "string" || !value.trim()) {
+            throw new Error("Invalid entryDate");
+        }
+
+
+        const normalized = normalizeDigits(value.trim());
+
+
+        // --------------------------------------------------
+        // Jalali date or Jalali local date/time
+        // --------------------------------------------------
+
+        const jalaliMatch =
+            /^(\d{3,4})\/(\d{1,2})\/(\d{1,2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?)?$/.exec(normalized);
+
+
+        if (jalaliMatch) {
+
+            try {
+
+                const jalaliDate = parseJalaliDate(
+                    `${jalaliMatch[1]}/${jalaliMatch[2]}/${jalaliMatch[3]}`
+                );
+
+                const hour = jalaliMatch[4] === undefined
+                    ? 0
+                    : Number(jalaliMatch[4]);
+
+                const minute = jalaliMatch[5] === undefined
+                    ? 0
+                    : Number(jalaliMatch[5]);
+
+                const second = jalaliMatch[6] === undefined
+                    ? 0
+                    : Number(jalaliMatch[6]);
+
+                const millisecond = jalaliMatch[7] === undefined
+                    ? 0
+                    : Number(jalaliMatch[7].padEnd(3, "0"));
+
+
+                if (
+                    hour < 0 || hour > 23 ||
+                    minute < 0 || minute > 59 ||
+                    second < 0 || second > 59
+                ) {
+                    throw new Error("Invalid time in entryDate");
+                }
+
+
+                const gregorian = jalaliToGregorianParts(jalaliDate);
+
+                return zonedDateTimeToUtc(
+                    gregorian.gy,
+                    gregorian.gm,
+                    gregorian.gd,
+                    hour,
+                    minute,
+                    second,
+                    millisecond,
+                    DEFAULT_TIME_ZONE
+                );
+
+            } catch (error) {
+
+                throw new Error(`Invalid entryDate: ${error.message}`);
+
+            }
+
+        }
+
+
+        // --------------------------------------------------
+        // Gregorian date or local date/time without offset
+        // --------------------------------------------------
+        //
+        // Date-only ISO values are interpreted as Tehran
+        // calendar dates. Local datetimes without Z/offset
+        // are also interpreted in Asia/Tehran.
+        //
+        // --------------------------------------------------
+
+        const gregorianLocalMatch =
+            /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{1,2}):(\d{2})(?::(\d{2})(?:\.(\d{1,3}))?)?)?$/.exec(normalized);
+
+
+        if (gregorianLocalMatch) {
+
+            try {
+
+                const year = Number(gregorianLocalMatch[1]);
+                const month = Number(gregorianLocalMatch[2]);
+                const day = Number(gregorianLocalMatch[3]);
+
+                const hour = gregorianLocalMatch[4] === undefined
+                    ? 0
+                    : Number(gregorianLocalMatch[4]);
+
+                const minute = gregorianLocalMatch[5] === undefined
+                    ? 0
+                    : Number(gregorianLocalMatch[5]);
+
+                const second = gregorianLocalMatch[6] === undefined
+                    ? 0
+                    : Number(gregorianLocalMatch[6]);
+
+                const millisecond = gregorianLocalMatch[7] === undefined
+                    ? 0
+                    : Number(gregorianLocalMatch[7].padEnd(3, "0"));
+
+
+                // Validate Gregorian date without allowing rollover.
+                const validationDate = new Date(
+                    `${String(year).padStart(4, "0")}-${String(month).padStart(2, "0")}-${String(day).padStart(2, "0")}T00:00:00.000Z`
+                );
+
+                if (
+                    Number.isNaN(validationDate.getTime()) ||
+                    validationDate.getUTCFullYear() !== year ||
+                    validationDate.getUTCMonth() + 1 !== month ||
+                    validationDate.getUTCDate() !== day
+                ) {
+                    throw new Error("Invalid Gregorian calendar date");
+                }
+
+
+                if (
+                    hour < 0 || hour > 23 ||
+                    minute < 0 || minute > 59 ||
+                    second < 0 || second > 59
+                ) {
+                    throw new Error("Invalid time in entryDate");
+                }
+
+
+                return zonedDateTimeToUtc(
+                    year,
+                    month,
+                    day,
+                    hour,
+                    minute,
+                    second,
+                    millisecond,
+                    DEFAULT_TIME_ZONE
+                );
+
+            } catch (error) {
+
+                throw new Error(`Invalid entryDate: ${error.message}`);
+
+            }
+
+        }
+
+
+        // --------------------------------------------------
+        // ISO timestamp with explicit timezone / legacy input
+        // --------------------------------------------------
+
+        const date = new Date(normalized);
+
+        if (Number.isNaN(date.getTime())) {
+            throw new Error("Invalid entryDate");
+        }
+
+        return date;
+
+    }
 
 
     // ======================================================
@@ -102,6 +330,109 @@ class JournalEntryService {
 
     }
 
+
+    // ======================================================
+    // Validate Active Fund
+    // ======================================================
+
+    async validateActiveFund(
+        fundId,
+        fiscalPeriodId,
+        client = prisma
+    ) {
+
+        // --------------------------------------------------
+        // Fund is Optional
+        // --------------------------------------------------
+
+        if (
+            fundId === undefined ||
+            fundId === null ||
+            fundId === ""
+        ) {
+
+            return null;
+
+        }
+
+
+        // --------------------------------------------------
+        // Validate Fund ID
+        // --------------------------------------------------
+
+        if (
+            typeof fundId !== "string" ||
+            !fundId.trim()
+        ) {
+
+            throw new Error(
+                "Invalid fundId"
+            );
+
+        }
+
+
+        // --------------------------------------------------
+        // Find Fund
+        // --------------------------------------------------
+
+        const fund =
+            await client.fund.findUnique({
+
+                where: {
+                    id: fundId.trim()
+                },
+
+                select: {
+                    id: true,
+                    status: true,
+                    fiscalPeriodId: true
+                }
+
+            });
+
+
+        if (!fund) {
+
+            throw new Error(
+                "Fund not found"
+            );
+
+        }
+
+
+        // --------------------------------------------------
+        // Fund Must Be Active
+        // --------------------------------------------------
+
+        if (fund.status !== "ACTIVE") {
+
+            throw new Error(
+                "Journal entry can only use an active fund"
+            );
+
+        }
+
+
+        // --------------------------------------------------
+        // Validate Fiscal Period
+        // --------------------------------------------------
+
+        if (
+            fund.fiscalPeriodId &&
+            fund.fiscalPeriodId !== fiscalPeriodId
+        ) {
+
+            throw new Error(
+                "Fund does not belong to the selected fiscal period"
+            );
+
+        }
+
+
+        return fund;
+
+    }
 
     // ======================================================
     // Get All Journal Entries
@@ -313,7 +644,7 @@ class JournalEntryService {
 
 
         const entryDate =
-            new Date(data.entryDate);
+            this.normalizeEntryDate(data.entryDate);
 
 
         if (
@@ -393,48 +724,14 @@ class JournalEntryService {
 
 
         // --------------------------------------------------
-        // Fund
+        // Fund Validation
         // --------------------------------------------------
 
-        if (
-            data.fundId !== undefined &&
-            data.fundId !== null &&
-            data.fundId !== ""
-        ) {
-
-            const fund =
-                await client.fund.findUnique({
-
-                    where: {
-                        id: data.fundId
-                    }
-
-                });
-
-
-            if (!fund) {
-
-                throw new Error(
-                    "Fund not found"
-                );
-
-            }
-
-
-            if (
-                fund.fiscalPeriodId &&
-                fund.fiscalPeriodId !==
-                data.fiscalPeriodId
-            ) {
-
-                throw new Error(
-                    "Fund does not belong to the selected fiscal period"
-                );
-
-            }
-
-        }
-
+        await this.validateActiveFund(
+            data.fundId,
+            data.fiscalPeriodId,
+            client
+        );
 
         // --------------------------------------------------
         // Duplicate Entry Number
@@ -817,7 +1114,7 @@ class JournalEntryService {
         ) {
 
             newEntryDate =
-                new Date(data.entryDate);
+                this.normalizeEntryDate(data.entryDate);
 
 
             if (
@@ -979,12 +1276,13 @@ class JournalEntryService {
         }
 
 
+
         // --------------------------------------------------
         // Fund
         // --------------------------------------------------
 
         let fundId =
-            existing.fundId;
+            existing.fundId || null;
 
 
         if (
@@ -998,54 +1296,43 @@ class JournalEntryService {
 
                 fundId = null;
 
-                updateData.fundId =
-                    null;
+                updateData.fundId = null;
 
             }
 
             else {
 
-                const fund =
-                    await prisma.fund.findUnique({
-
-                        where: {
-                            id: data.fundId
-                        }
-
-                    });
-
-
-                if (!fund) {
-
-                    throw new Error(
-                        "Fund not found"
-                    );
-
-                }
-
-
                 if (
-                    fund.fiscalPeriodId &&
-                    fund.fiscalPeriodId !==
-                    fiscalPeriodId
+                    typeof data.fundId !== "string" ||
+                    !data.fundId.trim()
                 ) {
 
                     throw new Error(
-                        "Fund does not belong to the selected fiscal period"
+                        "Invalid fundId"
                     );
 
                 }
 
-
                 fundId =
-                    data.fundId;
+                    data.fundId.trim();
 
                 updateData.fundId =
-                    data.fundId;
+                    fundId;
 
             }
 
         }
+
+
+        // --------------------------------------------------
+        // Validate Selected Fund
+        // --------------------------------------------------
+
+        await this.validateActiveFund(
+            fundId,
+            fiscalPeriodId
+        );
+
 
 
         // --------------------------------------------------
@@ -1264,7 +1551,6 @@ class JournalEntryService {
         client = prisma
     ) {
 
-
         // --------------------------------------------------
         // Validate ID
         // --------------------------------------------------
@@ -1279,7 +1565,56 @@ class JournalEntryService {
 
 
         // --------------------------------------------------
-        // Find Journal Entry
+        // Start Internal Transaction
+        // --------------------------------------------------
+        //
+        // When called with the main Prisma client,
+        // create an interactive transaction.
+        //
+        // When called with an external transaction client,
+        // reuse that transaction.
+        //
+
+        if (client === prisma) {
+
+            return await prisma.$transaction(
+
+                async (tx) => {
+
+                    return await this.postWithClient(
+                        id,
+                        tx
+                    );
+
+                }
+
+            );
+
+        }
+
+
+        // --------------------------------------------------
+        // Lock Journal Entry
+        // --------------------------------------------------
+
+        const locked =
+            await journalEntryRepository.lockById(
+                id,
+                client
+            );
+
+
+        if (!locked) {
+
+            throw new Error(
+                "Journal entry not found"
+            );
+
+        }
+
+
+        // --------------------------------------------------
+        // Find Journal Entry After Lock
         // --------------------------------------------------
 
         const existing =
@@ -1367,6 +1702,17 @@ class JournalEntryService {
             );
 
         }
+
+
+        // --------------------------------------------------
+        // Validate Fund Before Posting
+        // --------------------------------------------------
+
+        await this.validateActiveFund(
+            existing.fundId,
+            existing.fiscalPeriodId,
+            client
+        );
 
 
         // --------------------------------------------------
@@ -1517,7 +1863,6 @@ class JournalEntryService {
 
     }
 
-
     // ======================================================
     // Delete Journal Entry
     // ======================================================
@@ -1539,18 +1884,17 @@ class JournalEntryService {
 
 
         // --------------------------------------------------
-        // Posted Protection
+        // DRAFT-Only Deletion Protection
         // --------------------------------------------------
 
-        if (
-            existing.status === "POSTED"
-        ) {
+        if (existing.status !== "DRAFT") {
 
             throw new Error(
-                "Posted journal entry cannot be deleted"
+                "Only DRAFT journal entries can be deleted"
             );
 
         }
+
 
 
         return await journalEntryRepository.delete(
