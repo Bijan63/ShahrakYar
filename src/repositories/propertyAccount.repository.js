@@ -1,8 +1,20 @@
+"use strict";
+
 const prisma =
     require("../config/prisma");
 
 
+const propertyAccountRelations = {
+
+    fiscalPeriod: true,
+
+    fund: true
+
+};
+
+
 class PropertyAccountRepository {
+
 
     // ======================================================
     // Find All Property Accounts
@@ -16,13 +28,7 @@ class PropertyAccountRepository {
                 createdAt: "desc"
             },
 
-            include: {
-
-                fiscalPeriod: true,
-
-                fund: true
-
-            }
+            include: propertyAccountRelations
 
         });
 
@@ -41,13 +47,7 @@ class PropertyAccountRepository {
                 id
             },
 
-            include: {
-
-                fiscalPeriod: true,
-
-                fund: true
-
-            }
+            include: propertyAccountRelations
 
         });
 
@@ -66,13 +66,7 @@ class PropertyAccountRepository {
                 propertyId
             },
 
-            include: {
-
-                fiscalPeriod: true,
-
-                fund: true
-
-            }
+            include: propertyAccountRelations
 
         });
 
@@ -97,6 +91,94 @@ class PropertyAccountRepository {
 
 
     // ======================================================
+    // Find Fiscal Period by ID
+    // ======================================================
+
+    async findFiscalPeriodById(id) {
+
+        return await prisma.fiscalPeriod.findUnique({
+
+            where: {
+                id
+            },
+
+            select: {
+
+                id: true,
+
+                code: true,
+
+                name: true,
+
+                status: true
+
+            }
+
+        });
+
+    }
+
+
+    // ======================================================
+    // Find Fund by ID
+    // ======================================================
+
+    async findFundById(id) {
+
+        return await prisma.fund.findUnique({
+
+            where: {
+                id
+            },
+
+            select: {
+
+                id: true,
+
+                code: true,
+
+                name: true,
+
+                status: true,
+
+                fiscalPeriodId: true
+
+            }
+
+        });
+
+    }
+
+
+    // ======================================================
+    // Get Property Account Usage Counts
+    // ======================================================
+
+    async getUsageCounts(id) {
+
+        // Assumption:
+        // ChargePayment.unitAccountId stores PropertyAccount.id.
+
+        const chargePayments =
+            await prisma.chargePayment.count({
+
+                where: {
+                    unitAccountId: id
+                }
+
+            });
+
+
+        return {
+
+            chargePayments
+
+        };
+
+    }
+
+
+    // ======================================================
     // Create Property Account
     // ======================================================
 
@@ -106,13 +188,7 @@ class PropertyAccountRepository {
 
             data,
 
-            include: {
-
-                fiscalPeriod: true,
-
-                fund: true
-
-            }
+            include: propertyAccountRelations
 
         });
 
@@ -133,13 +209,7 @@ class PropertyAccountRepository {
 
             data,
 
-            include: {
-
-                fiscalPeriod: true,
-
-                fund: true
-
-            }
+            include: propertyAccountRelations
 
         });
 

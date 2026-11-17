@@ -1,6 +1,5 @@
-const MAIN_BACKEND_URL = (
-    process.env.MAIN_BACKEND_URL || "http://localhost:5000"
-).replace(/\/+$/, "");
+const MAIN_BACKEND_URL =
+    process.env.MAIN_BACKEND_URL || "http://localhost:5000";
 
 const VALID_ROLES = new Set([
     "ADMIN",

@@ -1,5 +1,177 @@
+
+"use strict";
+
 const propertyAccountService =
     require("../services/propertyAccount.service");
+
+
+// ======================================================
+// Extract Bearer Token
+// ======================================================
+
+const getBearerToken = (req) => {
+
+    const authorization =
+        req.headers.authorization || "";
+
+    const match =
+        authorization.match(/^Bearer\s+(.+)$/i);
+
+    return match
+        ? match[1].trim()
+        : null;
+
+};
+
+
+// ======================================================
+// Error Status Mapper
+// ======================================================
+
+const getErrorStatus = (error) => {
+
+    // --------------------------------------------------
+    // Preserve Main Backend HTTP Status
+    // --------------------------------------------------
+
+    const upstreamStatus =
+        Number(error?.statusCode);
+
+    if (
+        [400, 401, 403, 404, 409, 503].includes(
+            upstreamStatus
+        )
+    ) {
+
+        return upstreamStatus;
+
+    }
+
+
+    const message =
+        error?.message || "";
+
+
+    // --------------------------------------------------
+    // 401 - Unauthorized
+    // --------------------------------------------------
+
+    if (
+        message === "Unauthorized"
+    ) {
+
+        return 401;
+
+    }
+
+
+    // --------------------------------------------------
+    // 404 - Not Found
+    // --------------------------------------------------
+
+    if (
+        message === "Property account not found" ||
+        message === "Property not found in Main Backend" ||
+        message === "Fiscal period not found" ||
+        message === "Fund not found"
+    ) {
+
+        return 404;
+
+    }
+
+
+    // --------------------------------------------------
+    // 409 - Conflict
+    // --------------------------------------------------
+
+    if (
+        message.includes("already exists") ||
+        message.includes("already has") ||
+        message.includes("payment records exist") ||
+        message.includes("charge or payment records exist") ||
+        message.includes("linked unit accounts") ||
+        message.includes("linked records exist") ||
+        message.includes("Operation blocked")
+    ) {
+
+        return 409;
+
+    }
+
+
+    // --------------------------------------------------
+    // 400 - Validation Error
+    // --------------------------------------------------
+
+    if (
+        message.includes("is required") ||
+        message.startsWith("Invalid ") ||
+        message === "Request body is required" ||
+        message === "No fields provided for update" ||
+        message === "propertyId cannot be changed" ||
+        message.includes("must match fund fiscal period")
+    ) {
+
+        return 400;
+
+    }
+
+
+    // --------------------------------------------------
+    // 503 - Main Backend Unavailable
+    // --------------------------------------------------
+
+    if (
+        message.includes("Main Backend is unavailable") ||
+        message.includes("Main Backend request timed out") ||
+        message.includes("Main Backend request failed") ||
+        message.includes("Unable to retrieve") ||
+        message.includes("Invalid response from Main Backend")
+    ) {
+
+        return 503;
+
+    }
+
+
+    // --------------------------------------------------
+    // Default
+    // --------------------------------------------------
+
+    return 500;
+
+};
+
+
+// ======================================================
+// Send Controller Error
+// ======================================================
+
+const sendControllerError = (
+    res,
+    label,
+    error,
+    fallbackMessage
+) => {
+
+    console.error(
+        `${label}:`,
+        error
+    );
+
+    return res.status(
+        getErrorStatus(error)
+    ).json({
+
+        success: false,
+
+        message:
+            error?.message || fallbackMessage
+
+    });
+
+};
 
 
 // ======================================================
@@ -26,20 +198,12 @@ const getPropertyAccounts = async (req, res) => {
 
     } catch (error) {
 
-        console.error(
-            "Get Property Accounts Error:",
-            error
+        return sendControllerError(
+            res,
+            "Get Property Accounts Error",
+            error,
+            "Failed to fetch property accounts"
         );
-
-        return res.status(500).json({
-
-            success: false,
-
-            message:
-                error.message ||
-                "Failed to fetch property accounts"
-
-        });
 
     }
 
@@ -72,27 +236,12 @@ const getPropertyAccountById = async (req, res) => {
 
     } catch (error) {
 
-        console.error(
-            "Get Property Account Error:",
-            error
+        return sendControllerError(
+            res,
+            "Get Property Account Error",
+            error,
+            "Failed to fetch property account"
         );
-
-        const status =
-            error.message ===
-            "Property account not found"
-                ? 404
-                : error.message ===
-                  "id is required"
-                    ? 400
-                    : 500;
-
-        return res.status(status).json({
-
-            success: false,
-
-            message: error.message
-
-        });
 
     }
 
@@ -112,10 +261,9 @@ const getPropertyAccountByPropertyId =
                 req.params;
 
             const result =
-                await propertyAccountService
-                    .getByPropertyId(
-                        propertyId
-                    );
+                await propertyAccountService.getByPropertyId(
+                    propertyId
+                );
 
             return res.status(200).json({
 
@@ -130,27 +278,12 @@ const getPropertyAccountByPropertyId =
 
         } catch (error) {
 
-            console.error(
-                "Get Property Account By Property ID Error:",
-                error
+            return sendControllerError(
+                res,
+                "Get Property Account By Property ID Error",
+                error,
+                "Failed to fetch property account"
             );
-
-            const status =
-                error.message ===
-                "Property account not found"
-                    ? 404
-                    : error.message ===
-                      "propertyId is required"
-                        ? 400
-                        : 500;
-
-            return res.status(status).json({
-
-                success: false,
-
-                message: error.message
-
-            });
 
         }
 
@@ -167,10 +300,7 @@ const createPropertyAccount =
         try {
 
             const token =
-                req.headers.authorization?.replace(
-                    "Bearer ",
-                    ""
-                );
+                getBearerToken(req);
 
 
             if (!token) {
@@ -207,72 +337,12 @@ const createPropertyAccount =
 
         } catch (error) {
 
-            console.error(
-                "Create Property Account Error:",
-                error
+            return sendControllerError(
+                res,
+                "Create Property Account Error",
+                error,
+                "Failed to create property account"
             );
-
-
-            let status = 500;
-
-
-            if (
-                error.message ===
-                "Unauthorized"
-            ) {
-
-                status = 401;
-
-            }
-
-
-            else if (
-                error.message ===
-                    "Request body is required" ||
-                error.message ===
-                    "propertyId is required" ||
-                error.message ===
-                    "accountNumber is required" ||
-                error.message ===
-                    "name is required" ||
-                error.message ===
-                    "Invalid status"
-            ) {
-
-                status = 400;
-
-            }
-
-
-            else if (
-                error.message ===
-                    "Property already has a finance account" ||
-                error.message ===
-                    "Property account number already exists"
-            ) {
-
-                status = 409;
-
-            }
-
-
-            else if (
-                error.message ===
-                "Property not found in Main Backend"
-            ) {
-
-                status = 404;
-
-            }
-
-
-            return res.status(status).json({
-
-                success: false,
-
-                message: error.message
-
-            });
 
         }
 
@@ -292,10 +362,29 @@ const updatePropertyAccount =
                 req.params;
 
 
+            const token =
+                getBearerToken(req);
+
+
+            if (!token) {
+
+                return res.status(401).json({
+
+                    success: false,
+
+                    message:
+                        "Unauthorized"
+
+                });
+
+            }
+
+
             const result =
                 await propertyAccountService.update(
                     id,
-                    req.body
+                    req.body,
+                    token
                 );
 
 
@@ -312,62 +401,12 @@ const updatePropertyAccount =
 
         } catch (error) {
 
-            console.error(
-                "Update Property Account Error:",
-                error
+            return sendControllerError(
+                res,
+                "Update Property Account Error",
+                error,
+                "Failed to update property account"
             );
-
-
-            let status = 500;
-
-
-            if (
-                error.message ===
-                    "Property account not found"
-            ) {
-
-                status = 404;
-
-            }
-
-
-            else if (
-                error.message ===
-                    "id is required" ||
-                error.message ===
-                    "Request body is required" ||
-                error.message ===
-                    "accountNumber is required" ||
-                error.message ===
-                    "name is required" ||
-                error.message ===
-                    "Invalid status" ||
-                error.message ===
-                    "propertyId cannot be changed"
-            ) {
-
-                status = 400;
-
-            }
-
-
-            else if (
-                error.message ===
-                "Property account number already exists"
-            ) {
-
-                status = 409;
-
-            }
-
-
-            return res.status(status).json({
-
-                success: false,
-
-                message: error.message
-
-            });
 
         }
 
@@ -387,8 +426,27 @@ const deletePropertyAccount =
                 req.params;
 
 
+            const token =
+                getBearerToken(req);
+
+
+            if (!token) {
+
+                return res.status(401).json({
+
+                    success: false,
+
+                    message:
+                        "Unauthorized"
+
+                });
+
+            }
+
+
             await propertyAccountService.delete(
-                id
+                id,
+                token
             );
 
 
@@ -403,29 +461,12 @@ const deletePropertyAccount =
 
         } catch (error) {
 
-            console.error(
-                "Delete Property Account Error:",
-                error
+            return sendControllerError(
+                res,
+                "Delete Property Account Error",
+                error,
+                "Failed to delete property account"
             );
-
-
-            const status =
-                error.message ===
-                    "Property account not found"
-                    ? 404
-                    : error.message ===
-                      "id is required"
-                        ? 400
-                        : 500;
-
-
-            return res.status(status).json({
-
-                success: false,
-
-                message: error.message
-
-            });
 
         }
 

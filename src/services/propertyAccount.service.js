@@ -1,3 +1,6 @@
+
+"use strict";
+
 const propertyAccountRepository =
     require("../repositories/propertyAccount.repository");
 
@@ -6,7 +9,153 @@ const {
 } = require("../utils/mainBackendClient");
 
 
+// ======================================================
+// Constants
+// ======================================================
+
+const ALLOWED_STATUSES = [
+    "ACTIVE",
+    "INACTIVE"
+];
+
+
+// ======================================================
+// Validation Helpers
+// ======================================================
+
+const validateObject = (data) => {
+
+    if (
+        !data ||
+        typeof data !== "object" ||
+        Array.isArray(data)
+    ) {
+
+        throw new Error(
+            "Request body is required"
+        );
+
+    }
+
+};
+
+
+const normalizeRequiredString = (
+    value,
+    field
+) => {
+
+    if (
+        typeof value !== "string" ||
+        !value.trim()
+    ) {
+
+        throw new Error(
+            `${field} is required`
+        );
+
+    }
+
+    return value.trim();
+
+};
+
+
+const normalizeOptionalId = (
+    value,
+    field
+) => {
+
+    if (value === null) {
+        return null;
+    }
+
+    if (
+        typeof value !== "string" ||
+        !value.trim()
+    ) {
+
+        throw new Error(
+            `Invalid ${field}`
+        );
+
+    }
+
+    return value.trim();
+
+};
+
+
+const validateStatus = (status) => {
+
+    if (!ALLOWED_STATUSES.includes(status)) {
+
+        throw new Error(
+            "Invalid status"
+        );
+
+    }
+
+};
+
+
+// ======================================================
+// Prisma Error Handler
+// ======================================================
+
+const handlePrismaError = (error) => {
+
+    if (error?.code === "P2002") {
+
+        const target =
+            error.meta?.target;
+
+        const targetText =
+            Array.isArray(target)
+                ? target.join(" ")
+                : String(target || "");
+
+        if (targetText.includes("propertyId")) {
+
+            throw new Error(
+                "Property already has a finance account"
+            );
+
+        }
+
+        if (targetText.includes("accountNumber")) {
+
+            throw new Error(
+                "Property account number already exists"
+            );
+
+        }
+
+        throw new Error(
+            "Property account data already exists"
+        );
+
+    }
+
+    if (error?.code === "P2003") {
+
+        throw new Error(
+            "Operation blocked because linked records exist"
+        );
+
+    }
+
+    throw error;
+
+};
+
+
+// ======================================================
+// Property Account Service
+// ======================================================
+
 class PropertyAccountService {
+
 
     // ======================================================
     // Get All Property Accounts
@@ -25,18 +174,16 @@ class PropertyAccountService {
 
     async getById(id) {
 
-        if (!id) {
-
-            throw new Error(
-                "id is required"
+        const accountId =
+            normalizeRequiredString(
+                id,
+                "id"
             );
 
-        }
-
-
         const propertyAccount =
-            await propertyAccountRepository.findById(id);
-
+            await propertyAccountRepository.findById(
+                accountId
+            );
 
         if (!propertyAccount) {
 
@@ -45,7 +192,6 @@ class PropertyAccountService {
             );
 
         }
-
 
         return propertyAccount;
 
@@ -58,19 +204,16 @@ class PropertyAccountService {
 
     async getByPropertyId(propertyId) {
 
-        if (!propertyId) {
-
-            throw new Error(
-                "propertyId is required"
+        const normalizedPropertyId =
+            normalizeRequiredString(
+                propertyId,
+                "propertyId"
             );
 
-        }
-
-
         const propertyAccount =
-            await propertyAccountRepository
-                .findByPropertyId(propertyId);
-
+            await propertyAccountRepository.findByPropertyId(
+                normalizedPropertyId
+            );
 
         if (!propertyAccount) {
 
@@ -80,8 +223,225 @@ class PropertyAccountService {
 
         }
 
-
         return propertyAccount;
+
+    }
+
+
+    // ======================================================
+    // Validate Fiscal Period
+    // ======================================================
+
+    async validateFiscalPeriodId(id) {
+
+        if (id === null) {
+            return null;
+        }
+
+        const fiscalPeriodId =
+            normalizeOptionalId(
+                id,
+                "fiscalPeriodId"
+            );
+
+        const fiscalPeriod =
+            await propertyAccountRepository.findFiscalPeriodById(
+                fiscalPeriodId
+            );
+
+        if (!fiscalPeriod) {
+
+            throw new Error(
+                "Fiscal period not found"
+            );
+
+        }
+
+        return fiscalPeriod;
+
+    }
+
+
+    // ======================================================
+    // Validate Fund
+    // ======================================================
+
+    async validateFundId(
+        id,
+        requireActive = true
+    ) {
+
+        if (id === null) {
+            return null;
+        }
+
+        const fundId =
+            normalizeOptionalId(
+                id,
+                "fundId"
+            );
+
+        const fund =
+            await propertyAccountRepository.findFundById(
+                fundId
+            );
+
+        if (!fund) {
+
+            throw new Error(
+                "Fund not found"
+            );
+
+        }
+
+        if (
+            requireActive &&
+            fund.status !== "ACTIVE"
+        ) {
+
+            throw new Error(
+                "Fund is inactive"
+            );
+
+        }
+
+        return fund;
+
+    }
+
+
+    // ======================================================
+    // Validate Fiscal Period and Fund Compatibility
+    // ======================================================
+
+    validateFiscalPeriodFund(
+        fiscalPeriodId,
+        fund
+    ) {
+
+        if (
+            fiscalPeriodId &&
+            fund?.fiscalPeriodId &&
+            fiscalPeriodId !== fund.fiscalPeriodId
+        ) {
+
+            throw new Error(
+                "Property account fiscal period must match fund fiscal period"
+            );
+
+        }
+
+    }
+
+
+    // ======================================================
+    // Get Main Backend Usage Counts
+    // ======================================================
+
+    async getUsageCounts(
+        propertyId,
+        token
+    ) {
+
+        const normalizedPropertyId =
+            normalizeRequiredString(
+                propertyId,
+                "propertyId"
+            );
+
+        if (!token) {
+
+            throw new Error(
+                "Unauthorized"
+            );
+
+        }
+
+        const response =
+            await mainBackendRequest(
+                `/api/properties/${encodeURIComponent(normalizedPropertyId)}/financial-usage`,
+                token
+            );
+
+        const usage =
+            response?.data;
+
+        if (
+            response?.success !== true ||
+            !usage ||
+            usage.propertyId !== normalizedPropertyId
+        ) {
+
+            throw new Error(
+                response?.message ||
+                "Unable to retrieve property financial usage"
+            );
+
+        }
+
+        const countFields = [
+            "unitCount",
+            "unitAccountCount",
+            "chargeCount",
+            "paymentCount"
+        ];
+
+        for (const field of countFields) {
+
+            if (
+                !Number.isSafeInteger(usage[field]) ||
+                usage[field] < 0
+            ) {
+
+                throw new Error(
+                    `Invalid financial usage value: ${field}`
+                );
+
+            }
+
+        }
+
+        return usage;
+
+    }
+
+
+    // ======================================================
+    // Validate Property in Main Backend
+    // ======================================================
+
+    async validateProperty(
+        propertyId,
+        token
+    ) {
+
+        if (!token) {
+
+            throw new Error(
+                "Unauthorized"
+            );
+
+        }
+
+        const response =
+            await mainBackendRequest(
+                `/api/properties/${encodeURIComponent(propertyId)}`,
+                token
+            );
+
+        if (
+            !response ||
+            response.success !== true ||
+            !response.data
+        ) {
+
+            throw new Error(
+                "Property not found in Main Backend"
+            );
+
+        }
+
+        return response.data;
 
     }
 
@@ -92,117 +452,71 @@ class PropertyAccountService {
 
     async create(data, token) {
 
+        validateObject(data);
+
         // --------------------------------------------------
-        // Validate request body
+        // Property ID
         // --------------------------------------------------
 
-        if (!data) {
-
-            throw new Error(
-                "Request body is required"
+        const propertyId =
+            normalizeRequiredString(
+                data.propertyId,
+                "propertyId"
             );
 
-        }
-
 
         // --------------------------------------------------
-        // Validate propertyId
+        // Account Number
         // --------------------------------------------------
 
-        if (!data.propertyId) {
-
-            throw new Error(
-                "propertyId is required"
+        const accountNumber =
+            normalizeRequiredString(
+                data.accountNumber,
+                "accountNumber"
             );
 
-        }
-
 
         // --------------------------------------------------
-        // Validate accountNumber
+        // Name
         // --------------------------------------------------
 
-        if (!data.accountNumber) {
-
-            throw new Error(
-                "accountNumber is required"
+        const name =
+            normalizeRequiredString(
+                data.name,
+                "name"
             );
 
-        }
-
 
         // --------------------------------------------------
-        // Validate name
+        // Status
         // --------------------------------------------------
 
-        if (!data.name) {
+        const status =
+            data.status === undefined
+                ? "ACTIVE"
+                : data.status;
 
-            throw new Error(
-                "name is required"
-            );
-
-        }
-
-
-        // --------------------------------------------------
-        // Validate status
-        // --------------------------------------------------
-
-        if (
-            data.status !== undefined &&
-            data.status !== "ACTIVE" &&
-            data.status !== "INACTIVE"
-        ) {
-
-            throw new Error(
-                "Invalid status"
-            );
-
-        }
+        validateStatus(status);
 
 
         // --------------------------------------------------
         // Validate Property in Main Backend
         // --------------------------------------------------
 
-        if (!token) {
-
-            throw new Error(
-                "Unauthorized"
-            );
-
-        }
-
-
-        const propertyResponse =
-            await mainBackendRequest(
-                `/api/properties/${data.propertyId}`,
-                token
-            );
-
-
-        if (
-            !propertyResponse ||
-            !propertyResponse.data
-        ) {
-
-            throw new Error(
-                "Property not found in Main Backend"
-            );
-
-        }
+        await this.validateProperty(
+            propertyId,
+            token
+        );
 
 
         // --------------------------------------------------
-        // Prevent duplicate Property Account
+        // Prevent Duplicate Property Account
         // --------------------------------------------------
 
         const existingPropertyAccount =
-            await propertyAccountRepository
-                .findByPropertyId(
-                    data.propertyId
-                );
-
+            await propertyAccountRepository.findByPropertyId(
+                propertyId
+            );
 
         if (existingPropertyAccount) {
 
@@ -214,15 +528,13 @@ class PropertyAccountService {
 
 
         // --------------------------------------------------
-        // Prevent duplicate Account Number
+        // Prevent Duplicate Account Number
         // --------------------------------------------------
 
         const existingAccountNumber =
-            await propertyAccountRepository
-                .findByAccountNumber(
-                    data.accountNumber
-                );
-
+            await propertyAccountRepository.findByAccountNumber(
+                accountNumber
+            );
 
         if (existingAccountNumber) {
 
@@ -234,57 +546,79 @@ class PropertyAccountService {
 
 
         // --------------------------------------------------
-        // Prepare data
+        // Fiscal Period
+        // --------------------------------------------------
+
+        const fiscalPeriodId =
+            data.fiscalPeriodId === undefined ||
+            data.fiscalPeriodId === null
+                ? null
+                : (
+                    await this.validateFiscalPeriodId(
+                        data.fiscalPeriodId
+                    )
+                ).id;
+
+
+        // --------------------------------------------------
+        // Fund
+        // --------------------------------------------------
+
+        const fund =
+            data.fundId === undefined ||
+            data.fundId === null
+                ? null
+                : await this.validateFundId(
+                    data.fundId
+                );
+
+
+        // --------------------------------------------------
+        // Validate Fiscal Period and Fund
+        // --------------------------------------------------
+
+        this.validateFiscalPeriodFund(
+            fiscalPeriodId,
+            fund
+        );
+
+
+        // --------------------------------------------------
+        // Prepare Data
         // --------------------------------------------------
 
         const createData = {
 
-            propertyId:
-                data.propertyId,
+            propertyId,
 
-            accountNumber:
-                data.accountNumber,
+            accountNumber,
 
-            name:
-                data.name,
+            name,
 
-            status:
-                data.status || "ACTIVE"
+            status,
+
+            fiscalPeriodId,
+
+            fundId: fund?.id || null
 
         };
-
-
-        // --------------------------------------------------
-        // Optional Fiscal Period
-        // --------------------------------------------------
-
-        if (data.fiscalPeriodId !== undefined) {
-
-            createData.fiscalPeriodId =
-                data.fiscalPeriodId || null;
-
-        }
-
-
-        // --------------------------------------------------
-        // Optional Fund
-        // --------------------------------------------------
-
-        if (data.fundId !== undefined) {
-
-            createData.fundId =
-                data.fundId || null;
-
-        }
 
 
         // --------------------------------------------------
         // Create
         // --------------------------------------------------
 
-        return await propertyAccountRepository.create(
-            createData
-        );
+        try {
+
+            return await propertyAccountRepository.create(
+                createData
+            );
+
+        } catch (error) {
+
+            handlePrismaError(error);
+
+        }
 
     }
 
@@ -293,64 +627,76 @@ class PropertyAccountService {
     // Update Property Account
     // ======================================================
 
-    async update(id, data) {
+    async update(
+        id,
+        data,
+        token
+    ) {
 
-        if (!id) {
+        validateObject(data);
 
-            throw new Error(
-                "id is required"
+        const accountId =
+            normalizeRequiredString(
+                id,
+                "id"
             );
-
-        }
-
-
-        if (!data) {
-
-            throw new Error(
-                "Request body is required"
-            );
-
-        }
 
 
         // --------------------------------------------------
-        // Make sure account exists
+        // Find Existing Account
         // --------------------------------------------------
 
         const existing =
-            await this.getById(id);
-
+            await this.getById(accountId);
 
         const updateData = {};
+
+
+        // --------------------------------------------------
+        // Property ID
+        // --------------------------------------------------
+
+        if (data.propertyId !== undefined) {
+
+            const propertyId =
+                normalizeRequiredString(
+                    data.propertyId,
+                    "propertyId"
+                );
+
+            if (
+                propertyId !== existing.propertyId
+            ) {
+
+                throw new Error(
+                    "propertyId cannot be changed"
+                );
+
+            }
+
+        }
 
 
         // --------------------------------------------------
         // Account Number
         // --------------------------------------------------
 
-        if (
-            data.accountNumber !== undefined
-        ) {
+        if (data.accountNumber !== undefined) {
 
-            if (!data.accountNumber) {
-
-                throw new Error(
-                    "accountNumber is required"
+            const accountNumber =
+                normalizeRequiredString(
+                    data.accountNumber,
+                    "accountNumber"
                 );
 
-            }
-
-
             const duplicate =
-                await propertyAccountRepository
-                    .findByAccountNumber(
-                        data.accountNumber
-                    );
-
+                await propertyAccountRepository.findByAccountNumber(
+                    accountNumber
+                );
 
             if (
                 duplicate &&
-                duplicate.id !== id
+                duplicate.id !== accountId
             ) {
 
                 throw new Error(
@@ -359,9 +705,8 @@ class PropertyAccountService {
 
             }
 
-
             updateData.accountNumber =
-                data.accountNumber;
+                accountNumber;
 
         }
 
@@ -372,17 +717,11 @@ class PropertyAccountService {
 
         if (data.name !== undefined) {
 
-            if (!data.name) {
-
-                throw new Error(
-                    "name is required"
-                );
-
-            }
-
-
             updateData.name =
-                data.name;
+                normalizeRequiredString(
+                    data.name,
+                    "name"
+                );
 
         }
 
@@ -393,17 +732,7 @@ class PropertyAccountService {
 
         if (data.status !== undefined) {
 
-            if (
-                data.status !== "ACTIVE" &&
-                data.status !== "INACTIVE"
-            ) {
-
-                throw new Error(
-                    "Invalid status"
-                );
-
-            }
-
+            validateStatus(data.status);
 
             updateData.status =
                 data.status;
@@ -412,45 +741,152 @@ class PropertyAccountService {
 
 
         // --------------------------------------------------
-        // Property ID
+        // Calculate New Fiscal Period
+        // --------------------------------------------------
+
+        let nextFiscalPeriodId =
+            existing.fiscalPeriodId || null;
+
+        if (data.fiscalPeriodId !== undefined) {
+
+            if (data.fiscalPeriodId === null) {
+
+                nextFiscalPeriodId = null;
+
+            } else {
+
+                const fiscalPeriod =
+                    await this.validateFiscalPeriodId(
+                        data.fiscalPeriodId
+                    );
+
+                nextFiscalPeriodId =
+                    fiscalPeriod.id;
+
+            }
+
+        }
+
+
+        // --------------------------------------------------
+        // Calculate New Fund
+        // --------------------------------------------------
+
+        let nextFund =
+            existing.fund || null;
+
+        if (data.fundId !== undefined) {
+
+            if (data.fundId === null) {
+
+                nextFund = null;
+
+            } else {
+
+                const normalizedFundId =
+                    normalizeOptionalId(
+                        data.fundId,
+                        "fundId"
+                    );
+
+                if (
+                    normalizedFundId !== existing.fundId
+                ) {
+
+                    nextFund =
+                        await this.validateFundId(
+                            normalizedFundId
+                        );
+
+                }
+
+            }
+
+        }
+
+        const nextFundId =
+            nextFund?.id || null;
+
+
+        // --------------------------------------------------
+        // Validate Fiscal Period and Fund Compatibility
+        // --------------------------------------------------
+
+        this.validateFiscalPeriodFund(
+            nextFiscalPeriodId,
+            nextFund
+        );
+
+
+        // --------------------------------------------------
+        // Detect Financial Link Changes
+        // --------------------------------------------------
+
+        const linksChanged =
+
+            nextFiscalPeriodId !==
+                (existing.fiscalPeriodId || null) ||
+
+            nextFundId !==
+                (existing.fundId || null);
+
+
+        // --------------------------------------------------
+        // Prevent Link Changes When Charges or Payments Exist
+        // --------------------------------------------------
+
+        if (linksChanged) {
+
+            const usage =
+                await this.getUsageCounts(
+                    existing.propertyId,
+                    token
+                );
+
+            if (
+                usage.chargeCount > 0 ||
+                usage.paymentCount > 0
+            ) {
+
+                throw new Error(
+                    "Cannot change fiscal period or fund because charge or payment records exist"
+                );
+
+            }
+
+        }
+
+
+        // --------------------------------------------------
+        // Add Link Changes to Update Data
+        // --------------------------------------------------
+
+        if (data.fiscalPeriodId !== undefined) {
+
+            updateData.fiscalPeriodId =
+                nextFiscalPeriodId;
+
+        }
+
+        if (data.fundId !== undefined) {
+
+            updateData.fundId =
+                nextFundId;
+
+        }
+
+
+        // --------------------------------------------------
+        // Prevent Empty Update
         // --------------------------------------------------
 
         if (
-            data.propertyId !== undefined &&
-            data.propertyId !== existing.propertyId
+            Object.keys(updateData).length === 0
         ) {
 
             throw new Error(
-                "propertyId cannot be changed"
+                "No fields provided for update"
             );
-
-        }
-
-
-        // --------------------------------------------------
-        // Fiscal Period
-        // --------------------------------------------------
-
-        if (
-            data.fiscalPeriodId !== undefined
-        ) {
-
-            updateData.fiscalPeriodId =
-                data.fiscalPeriodId || null;
-
-        }
-
-
-        // --------------------------------------------------
-        // Fund
-        // --------------------------------------------------
-
-        if (
-            data.fundId !== undefined
-        ) {
-
-            updateData.fundId =
-                data.fundId || null;
 
         }
 
@@ -459,10 +895,18 @@ class PropertyAccountService {
         // Update
         // --------------------------------------------------
 
-        return await propertyAccountRepository.update(
-            id,
-            updateData
-        );
+        try {
+
+            return await propertyAccountRepository.update(
+                accountId,
+                updateData
+            );
+
+        } catch (error) {
+
+            handlePrismaError(error);
+
+        }
 
     }
 
@@ -471,23 +915,69 @@ class PropertyAccountService {
     // Delete Property Account
     // ======================================================
 
-    async delete(id) {
+    async delete(
+        id,
+        token
+    ) {
 
-        if (!id) {
+        const accountId =
+            normalizeRequiredString(
+                id,
+                "id"
+            );
+
+
+        // --------------------------------------------------
+        // Find Existing Account
+        // --------------------------------------------------
+
+        const existing =
+            await this.getById(accountId);
+
+
+        // --------------------------------------------------
+        // Check Main Backend Usage
+        // --------------------------------------------------
+
+        const usage =
+            await this.getUsageCounts(
+                existing.propertyId,
+                token
+            );
+
+
+        // --------------------------------------------------
+        // Prevent Delete When Operational Links Exist
+        // --------------------------------------------------
+
+        if (
+            usage.unitAccountCount > 0 ||
+            usage.chargeCount > 0 ||
+            usage.paymentCount > 0
+        ) {
 
             throw new Error(
-                "id is required"
+                "Cannot delete property account because linked unit accounts or charge/payment records exist. Set status to INACTIVE instead."
             );
 
         }
 
 
-        await this.getById(id);
+        // --------------------------------------------------
+        // Delete
+        // --------------------------------------------------
 
+        try {
 
-        return await propertyAccountRepository.delete(
-            id
-        );
+            return await propertyAccountRepository.delete(
+                accountId
+            );
+
+        } catch (error) {
+
+            handlePrismaError(error);
+
+        }
 
     }
 

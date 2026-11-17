@@ -168,7 +168,6 @@ router.get(
     getPropertyAccountByPropertyId
 );
 
-
 /**
  * @swagger
  * /api/finance/property-accounts/{id}:
