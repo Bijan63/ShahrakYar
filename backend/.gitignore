@@ -78,3 +78,7 @@ build/
 *.pid
 *.seed
 *.tgz
+!.env.docker.example
+
+.env.docker
+backup_v1.sql
