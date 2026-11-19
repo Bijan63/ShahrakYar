@@ -20,5 +20,13 @@
     "prisma": "^6.19.3",
     "swagger-jsdoc": "^6.3.0",
     "swagger-ui-express": "^5.0.1"
+  },
+  "overrides": {
+    "@prisma/config": {
+      "deepmerge-ts": "8.0.2"
+    },
+    "swagger-jsdoc": {
+      "glob": "14.0.2"
+    }
   }
 }
